@@ -141,10 +141,8 @@ bool UEOS_Gameinstance::IsPlayerLoggedIn(int32 LocalUserNum)
 		IOnlineIdentityPtr IdentityPtr = OnlineSubsystem->GetIdentityInterface();
 		if (IdentityPtr)
 		{
-			if (IdentityPtr->GetLoginStatus(LocalUserNum)==ELoginStatus::LoggedIn)
-			{
-				return true;
-			}
+			return IdentityPtr->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn;
+			
 		}
 	}
 	UE_LOG(LogTemp, Error, TEXT("is player logged in: No valid OnlineSubsystem"));
@@ -1116,9 +1114,9 @@ void UEOS_Gameinstance::JoinEOSSession(const FDelegateEOSSessionJoined OnSession
 			this->JoinSessionDelegateHandle = Session->AddOnJoinSessionCompleteDelegate_Handle(
 				FOnJoinSessionComplete::FDelegate::CreateUObject(this, &UEOS_Gameinstance::HandleJoinSessionCompleted,
 					SessionSearchInfo));
-			// "MyLocalSessionName" is the local name of the session for this player. It doesn't have to match the name the server gave their session.
+			// "KingdomsEdge" is the local name of the session for this player. It doesn't have to match the name the server gave their session.
 			DelegateEOSSessionJoined = OnSessionsJoined;
-			if (!Session->JoinSession(0, FName(TEXT("MyLocalSessionName")), *SessionSearchInfo.RawResult))
+			if (!Session->JoinSession(0, FName(TEXT("KingdomsEdge")), *SessionSearchInfo.RawResult))
 			{
 				// Call didn't start, return error.
 				UE_LOG(LogTemp, Error, TEXT("Join EOS Session, call didn't start!"));
@@ -1159,10 +1157,12 @@ void UEOS_Gameinstance::HandleJoinSessionCompleted(const FName SessionName, EOnJ
 			DelegateEOSSessionJoined.ExecuteIfBound(SessionName,
 				static_cast<ETamBPOnJoinSessionCompleteResult>(JoinResult)
 				, OutSessionSettings->BuildUniqueId);
+			return;
 		}
 	}
 	UE_LOG(LogTemp, Error, TEXT("Join EOS Session callback didn't start, no valid online subsystem!"));
 	DelegateEOSSessionJoined.ExecuteIfBound(TEXT(""), ETamBPOnJoinSessionCompleteResult::UnknownError, 0);
+	return;
 	
 }
 
@@ -1175,19 +1175,18 @@ void UEOS_Gameinstance::FindEOSSessionFromSessionID(const FDelegateFindEOSSessio
 		if (Session)
 		{
 			DelegateFindEOSSessionBySessionId = OnSessionsFound;
-			if (Session->FindSessionById(
+			if (!Session->FindSessionById(
 				*SearchingUser.GetUniqueNetId().Get(),
 				*SessionId.SessionId.Get(), *FriendId.FriendInfo.Pin()->GetUserId(), FOnSingleSessionResultComplete::FDelegate::CreateUObject(
 					this,
 					&UEOS_Gameinstance::HandleSingleSessionResultComplete)))
 			{
+				UE_LOG(LogTemp, Error, TEXT("Find EOS Session by ID, call didn't start!"));
 				return;
 			}
-			DelegateFindEOSSessionBySessionId.ExecuteIfBound(false, FTamBPSessionSearchResultInfos());
 		}
 	}
-	UE_LOG(LogTemp, Error, TEXT("Find EOS Session by ID, call didn't start!"));
-	return;
+	
 }
 
 void UEOS_Gameinstance::HandleSingleSessionResultComplete(int32 LocalUserNum,bool bWasSuccesfull,const FOnlineSessionSearchResult& SearchResult)

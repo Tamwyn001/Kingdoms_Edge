@@ -51,4 +51,10 @@ public:
 	UFUNCTION(BlueprintCallable, DisplayName = "Unregister Player", Category = "Tamwyn's EOS|Session")
 		void UnregisterPlayer(const FDelegateUnRegisterPlayer OnPlayerUnRegistered, const FName SessionName, const APlayerController* PlayerController);
 	
+	FDelegateHandle UnRegisterPlayerDelegateHandle;
+	void HandleUnRegisterPlayerHandle(
+		FName SessionName,
+		const TArray<FUniqueNetIdRef>& PlayerId,
+		bool WasSuccessfull
+	);
 };

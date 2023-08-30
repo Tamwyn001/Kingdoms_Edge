@@ -23,6 +23,6 @@ class KINGDOMS_EDGE_API UTamwynOnlineFunctionLibrary : public UBlueprintFunction
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Equal (FUniqueNetId)", CompactNodeTitle = "=="), Category = "Online")
 		static bool EqualEqual_UniqueNetIdRepl(const FUniqueNetIdRepl& A, const FUniqueNetIdRepl& B);
 
-	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String (FUniqueNetId)", CompactNodeTitle = "->", ScriptMethod = "ToString", Category = "Utilities|String")
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String (FUniqueNetId)", CompactNodeTitle = "->", ScriptMethod = "ToString", Category = "Utilities|String"))
 		static FString Conv_UniqueNetIdReplToString(const FUniqueNetIdRepl& InUniqueNetId);
 };

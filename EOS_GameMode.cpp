@@ -165,12 +165,28 @@ void AEOS_GameMode::UnregisterPlayer(const FDelegateUnRegisterPlayer OnPlayerUnR
 	IOnlineSubsystem* Subsystem = Online::GetSubsystem(PlayerController->GetWorld());
 	IOnlineSessionPtr Session = Subsystem->GetSessionInterface();
 
+	DelegateUnRegisterPlayer = OnPlayerUnRegistered;
+
+	this->UnRegisterPlayerDelegateHandle = Session->AddOnUnregisterPlayersCompleteDelegate_Handle(FOnUnregisterPlayersComplete::FDelegate::CreateUObject(
+		this, &AEOS_GameMode::HandleUnRegisterPlayerHandle));
+
 	// Unregister the player with the name you provided in CreateSession.
 	if (!Session->UnregisterPlayer(SessionName, *UniqueNetId))
 	{
-		DelegateUnRegisterPlayer.ExecuteIfBound(false);
-		return;
+		UE_LOG(LogTemp, Error, TEXT("Unregister Player, call didn't start"));
 	}
-	DelegateUnRegisterPlayer.ExecuteIfBound(true);
 	return;
 }
+
+
+void AEOS_GameMode::HandleUnRegisterPlayerHandle(FName SessionName, const TArray<FUniqueNetIdRef>& PlayerId, bool WasSuccessfull)
+{
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(this->GetWorld());
+	IOnlineSessionPtr Session = Subsystem->GetSessionInterface();
+
+	Session->ClearOnUnregisterPlayersCompleteDelegate_Handle(this->UnRegisterPlayerDelegateHandle);
+	this->UnRegisterPlayerDelegateHandle.Reset();
+
+	DelegateUnRegisterPlayer.ExecuteIfBound(WasSuccessfull);
+}
+
