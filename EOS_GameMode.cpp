@@ -107,21 +107,18 @@ void AEOS_GameMode::RegisterPlayers(const FDelegateRegisterPlayer OnPlayerRegist
 			IOnlineSubsystem* Subsystem = Online::GetSubsystem(PlayerConrtollerElem->GetWorld());
 			IOnlineSessionPtr Session = Subsystem->GetSessionInterface();
 
+			this->RegisterPlayerDelegateHandle = Session->AddOnRegisterPlayersCompleteDelegate_Handle(FOnRegisterPlayersComplete::FDelegate::CreateUObject(
+				this, &AEOS_GameMode::HandleRegisterPlayer));
+
 			// Register the player with the "KingdomsEdge" session; this name should match the name you provided in CreateSession.
 			//to rework wtih return
 			if (!Session->RegisterPlayer(SessionName, *UniqueNetId, bWasInvited))
 			{
-				DelegateRegisterPlayer.ExecuteIfBound(false, PlayerConrtollerElem);
+				UE_LOG(LogTemp, Error, TEXT("Register Player: Call didn't start"));
 			}
-			else
-			{
-				DelegateRegisterPlayer.ExecuteIfBound(true, PlayerConrtollerElem);
-			}
-			
 		}
 		else
 		{
-			DelegateRegisterPlayer.ExecuteIfBound(false, PlayerConrtollerElem);
 			UE_LOG(LogTemp, Error, TEXT("Register Player: No valid UniqueNetId"));
 		}
 	}
@@ -168,7 +165,7 @@ void AEOS_GameMode::UnregisterPlayer(const FDelegateUnRegisterPlayer OnPlayerUnR
 	DelegateUnRegisterPlayer = OnPlayerUnRegistered;
 
 	this->UnRegisterPlayerDelegateHandle = Session->AddOnUnregisterPlayersCompleteDelegate_Handle(FOnUnregisterPlayersComplete::FDelegate::CreateUObject(
-		this, &AEOS_GameMode::HandleUnRegisterPlayerHandle));
+		this, &AEOS_GameMode::HandleUnRegisterPlayer));
 
 	// Unregister the player with the name you provided in CreateSession.
 	if (!Session->UnregisterPlayer(SessionName, *UniqueNetId))
@@ -178,8 +175,19 @@ void AEOS_GameMode::UnregisterPlayer(const FDelegateUnRegisterPlayer OnPlayerUnR
 	return;
 }
 
+void AEOS_GameMode::HandleRegisterPlayer(FName SessionName, const TArray<FUniqueNetIdRef>& PlayerId, bool WasSuccessfull)
+{
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(this->GetWorld());
+	IOnlineSessionPtr Session = Subsystem->GetSessionInterface();
 
-void AEOS_GameMode::HandleUnRegisterPlayerHandle(FName SessionName, const TArray<FUniqueNetIdRef>& PlayerId, bool WasSuccessfull)
+	Session->ClearOnRegisterPlayersCompleteDelegate_Handle(this->RegisterPlayerDelegateHandle);
+	this->RegisterPlayerDelegateHandle.Reset();
+
+	DelegateRegisterPlayer.ExecuteIfBound(WasSuccessfull);
+}
+
+
+void AEOS_GameMode::HandleUnRegisterPlayer(FName SessionName, const TArray<FUniqueNetIdRef>& PlayerId, bool WasSuccessfull)
 {
 	IOnlineSubsystem* Subsystem = Online::GetSubsystem(this->GetWorld());
 	IOnlineSessionPtr Session = Subsystem->GetSessionInterface();

@@ -35,9 +35,11 @@ void UEOS_Gameinstance::LoginPlayer(FDelegateLoginEOSSubsystem OnLoginCompleted,
 			{
 				UE_LOG(LogTemp, Error, TEXT("EOS Call AutoLogin didn't start. Check if Online Subsystem is implemented!"));
 			}
+			return;
 		}
 	}
 	UE_LOG(LogTemp, Error, TEXT("login player: No valid OnlineSubsystem"));
+	return;
 }
 
 void UEOS_Gameinstance::HandleLoginComplete(const int32 LocalUserNum, const bool bWasSuccessful,const FUniqueNetId &UserID,const FString &Error)
@@ -64,6 +66,7 @@ void UEOS_Gameinstance::HandleLoginComplete(const int32 LocalUserNum, const bool
 			this->LoginDelegateHande.Reset();
 		}
 	}
+	return;
 }
 
 //LogoutPlayer
@@ -88,6 +91,7 @@ void UEOS_Gameinstance::LogoutPlayer(FDelegateLogoutEOSSubsystem OnLogoutComplet
 			{
 				UE_LOG(LogTemp, Error, TEXT("EOS Call Logout didn't start. Check if Online Subsystem is implemented!"));
 			}
+			return;
 		}
 	}
 	UE_LOG(LogTemp, Error, TEXT("logout player: No valid OnlineSubsystem"));
@@ -130,6 +134,7 @@ void UEOS_Gameinstance::HandleLogoutComplete(const int32 LocalUserNum, const boo
 			this->OnPartyInviteReceivedExDelegateHandle.Reset();
 		}
 	}  
+	return;
 }
 
 //is player Logged in
@@ -145,7 +150,7 @@ bool UEOS_Gameinstance::IsPlayerLoggedIn(int32 LocalUserNum)
 			
 		}
 	}
-	UE_LOG(LogTemp, Error, TEXT("is player logged in: No valid OnlineSubsystem"));
+	UE_LOG(LogTemp, Error, TEXT("Is player logged in: No valid OnlineSubsystem"));
 	return false;
 }
 
@@ -164,11 +169,7 @@ FString UEOS_Gameinstance::GetPlayerNickname(int32 LocalUserNum)
 			}
 		}
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("get player nickname: No valid OnlineSubsystem"));
-	}
-
+	UE_LOG(LogTemp, Error, TEXT("get player nickname: No valid OnlineSubsystem"));
 	return FString();
 }
 
@@ -187,10 +188,7 @@ void UEOS_Gameinstance::GetPlayerUniqueNetId(int32 LocalUserNum, FUniqueNetIdRep
 			}
 		}
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("get player uniqueNetID: No valid OnlineSubsystem"));
-	}
+	UE_LOG(LogTemp, Error, TEXT("get player uniqueNetID: No valid OnlineSubsystem"));
 	PlayerUniqueNetId = FUniqueNetIdRepl();
 	return;
 }
@@ -208,11 +206,7 @@ void UEOS_Gameinstance::GetPlayerAccount(const FUniqueNetIdRepl& UniqueNetID, FT
 			return;
 		}
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("get player account: No valid OnlineSubsystem"));
-	}
-
+	UE_LOG(LogTemp, Error, TEXT("get player account: No valid OnlineSubsystem"));
 	UserAccount.UserAccountInfo = NULL;
 	return;
 }
@@ -849,17 +843,14 @@ void UEOS_Gameinstance::CreateEOSSession(const FDelegateEOSSessionCreated OnSess
 			//set a search keyword, show up in the portal
 			SessionSettings->Set(SEARCH_KEYWORDS, SessionName.ToString(), EOnlineDataAdvertisementType::ViaOnlineService);
 			// Create a session and give the local name "MyLocalSessionName". This name is entirely local to the current player and isn't stored in EOS.
-			if (Session->CreateSession(0, SessionName, *SessionSettings))
+			if (!Session->CreateSession(0, SessionName, *SessionSettings))
 			{
+				UE_LOG(LogTemp, Error, TEXT("Create EOS Session, call didn't start!"));
 				return;
 			}
 		}
 	}
-	UE_LOG(LogTemp, Error, TEXT("Create EOS Session, call didn't start!"));
-	DelegateEOSSessionCreated.ExecuteIfBound(false,0);
-
 	return;
-
 }
 
 void UEOS_Gameinstance::HandleCreateSessionCompleted(const FName SessionName, const bool bWasSuccessful)
@@ -898,7 +889,6 @@ void UEOS_Gameinstance::DestroyEOSSession(const FDelegateEOSSessionDestroyed OnS
 			if (!Session->DestroySession(SessionName))
 			{
 				UE_LOG(LogTemp, Error, TEXT("Destroy EOS Session, call didn't start!"));
-				OnSessionDestroyed.ExecuteIfBound(false);
 				return;
 			}
 		}
@@ -946,8 +936,6 @@ void UEOS_Gameinstance::SearchEOSSession(const FDelegateEOSSessionFound OnSessio
 			{
 				// Call didn't start, return error.
 				UE_LOG(LogTemp, Error, TEXT("Search EOS Session, call didn't start!"));
-				const TArray<FTamBPSessionSearchResultInfos> EmptyFoundSession;
-				DelegateEOSSessionFound.ExecuteIfBound(false, EmptyFoundSession);
 			}
 		}
 
@@ -1080,7 +1068,6 @@ void UEOS_Gameinstance::CancelSearchEOSSession(const FDelegateCancelSearchEOSSes
 			if(!Session->CancelFindSessions())
 			{
 				UE_LOG(LogTemp, Error, TEXT("Cancel Find EOS Session, call didn't start!"));
-				DelegateCancelSearchEOSSession.ExecuteIfBound(false);
 				return;
 			}
 		}
@@ -1120,7 +1107,7 @@ void UEOS_Gameinstance::JoinEOSSession(const FDelegateEOSSessionJoined OnSession
 			{
 				// Call didn't start, return error.
 				UE_LOG(LogTemp, Error, TEXT("Join EOS Session, call didn't start!"));
-				DelegateEOSSessionJoined.ExecuteIfBound(TEXT(""), ETamBPOnJoinSessionCompleteResult::UnknownError, 0);
+
 			}
 		}
 	}
@@ -1143,7 +1130,7 @@ void UEOS_Gameinstance::HandleJoinSessionCompleted(const FName SessionName, EOnJ
 				UE_LOG(LogTemp, Error, TEXT("Failed to start browse: %s"), *BrowseError);
 			}
 		}
-	}
+	}	
 
 	IOnlineSubsystem* Subsystem = Online::GetSubsystem(this->GetWorld());
 	if (Subsystem)
