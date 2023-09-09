@@ -2,11 +2,13 @@
 
 
 #include "EOS_Gameinstance.h"
-#include "OnlineSubsystemUtils.h"
-#include "OnlineSubsystem.h"
-#include "Interfaces/OnlineIdentityInterface.h"
-#include "Interfaces/OnlineFriendsInterface.h"
+//#include "OnlineSubsystemUtils.h"
+//#include "OnlineSubsystem.h"
+//#include "Interfaces/OnlineIdentityInterface.h"
+//#include "Interfaces/OnlineFriendsInterface.h"
+//#include "Private/RedpointInterfaces/OnlineLobbyInterface.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/Guid.h"
 #include "UObject/NameTypes.h"
 
 
@@ -167,6 +169,8 @@ FString UEOS_Gameinstance::GetPlayerNickname(int32 LocalUserNum)
 			{
 				return IdentityPtr->GetPlayerNickname(LocalUserNum);
 			}
+			UE_LOG(LogTemp, Warning, TEXT("get player nickname: Player not logged in"));
+			return FString();
 		}
 	}
 	UE_LOG(LogTemp, Error, TEXT("get player nickname: No valid OnlineSubsystem"));
@@ -186,6 +190,9 @@ void UEOS_Gameinstance::GetPlayerUniqueNetId(int32 LocalUserNum, FUniqueNetIdRep
 				PlayerUniqueNetId = FUniqueNetIdRepl(IdentityPtr->GetUniquePlayerId(LocalUserNum));
 				return;
 			}
+			UE_LOG(LogTemp, Error, TEXT("get player uniqueNetID: Player not logged in"));
+			PlayerUniqueNetId = FUniqueNetIdRepl();
+			return;
 		}
 	}
 	UE_LOG(LogTemp, Error, TEXT("get player uniqueNetID: No valid OnlineSubsystem"));
@@ -523,6 +530,92 @@ bool UEOS_Gameinstance::GetPartyMembers(int32 LocalUserNum, const FTamBPOnlinePa
 	return false;
 }
 
+void UEOS_Gameinstance::RequestFriendPartyJoinInfo(const FUniqueNetIdRepl& PlayerRequesting, const FUniqueNetIdRepl& Recipient, const FGuid& PartyGuid)
+{
+	IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(this->GetWorld());
+	IOnlinePartyPtr PartyInterface = OnlineSubsystem->GetPartyInterface();
+	IOnlineLobbyPtr LobbyInterface = Online::GetLobbyInterface(OnlineSubsystem);
+
+	//parties are an extention of lobbies, so we use the lobby interface to search a party
+	TSharedRef<FOnlineLobbySearchQuery> Search = MakeShared<FOnlineLobbySearchQuery>();
+
+	// To search by settings, add a LobbySetting and SettingValue to search for:
+	Search->Filters.Add(
+		FOnlineLobbySearchQueryFilter(
+			FString(TEXT("PartyId")),
+			PartyGuid.ToString(),
+			EOnlineLobbySearchQueryFilterComparator::Equal));
+	Search->Limit = 1;
+
+	if (!LobbyInterface->Search(
+		*PlayerRequesting.GetUniqueNetId(),
+		*Search,
+		FOnLobbySearchComplete::CreateLambda([this](const FOnlineError& Error,
+			const FUniqueNetId& UserId,
+			const TArray<TSharedRef<const FOnlineLobbyId>>& Lobbies)
+			{
+
+				if (Error.WasSuccessful())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Request Friend join Lobby info suceeded, found %ld results!"), Lobbies.Num());
+					for (auto It_Lobby : Lobbies)
+					{
+						IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(this->GetWorld());
+						IOnlinePartyPtr PartyInterface = OnlineSubsystem->GetPartyInterface();
+
+						IOnlineLobbyPtr LobbyInterface = Online::GetLobbyInterface(OnlineSubsystem);
+
+
+						FVariantData JoinTokenResult;
+						LobbyInterface->GetLobbyMetadataValue(UserId, It_Lobby.Get(), FString(TEXT("JoinToken")), JoinTokenResult);
+
+						FTamBPOnlinePartyJoinInfo JoinInfo(PartyInterface->MakeJoinInfoFromJson(JoinTokenResult.ToString()));
+						this->DelegateEOSGetFriendPartyJoinInfo.ExecuteIfBound(true, JoinInfo, Error.GetErrorMessage());
+
+						return;
+					}
+				}
+				else
+				{
+					this->DelegateEOSGetFriendPartyJoinInfo.ExecuteIfBound(false, FTamBPOnlinePartyJoinInfo(), Error.GetErrorMessage());
+					UE_LOG(LogTemp, Warning, TEXT("Request Friend join Lobby info failed, error message: %s : %s!"), Error.GetErrorCode(), Error.GetErrorMessage().ToString());
+					return;
+				}
+			}
+	)))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Request Friend Party join info, call search() didn't start"));
+		return;
+	}
+}
+
+bool UEOS_Gameinstance::UpdatePartyMetadata(const FUniqueNetIdRepl& LocalUserId, const FOnlinePartyId& PartyId, const TArray<FTamBPPartyMetadata>& MetadataToUpload)
+{
+	IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(this->GetWorld());
+	IOnlinePartyPtr PartyInterface = OnlineSubsystem->GetPartyInterface();
+
+	auto ReadOnlyData = PartyInterface->GetPartyData(*LocalUserId.GetUniqueNetId(), PartyId, NAME_Default);
+	if (!ReadOnlyData.IsValid())
+	{
+		// Party Data isn't valid, return error.
+		UE_LOG(LogTemp, Error, TEXT("UpdatePartyMetadata failed: unable to make a mutable copy!"));
+		return false;
+	}
+
+	auto PartyData = MakeShared<FOnlinePartyData>(*ReadOnlyData);
+
+	for(FTamBPPartyMetadata It_ToUploadMetadata : MetadataToUpload)
+	{
+		PartyData->SetAttribute(It_ToUploadMetadata.AttributeName, It_ToUploadMetadata.GetAttributeValue());
+	}
+
+	if (!PartyInterface->UpdatePartyData(*LocalUserId.GetUniqueNetId(), PartyId, NAME_Default, *PartyData))
+	{
+		UE_LOG(LogTemp, Error, TEXT("UpdatePartyMetadata failed: unable to set data!"));
+		return false;
+	}
+	return true;
+}
 
 void UEOS_Gameinstance::SendPartyInvite(FDelegateInviteMemberCompleted OnInviteCompleted, const FUniqueNetIdRepl& Sender, const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& Recipient)
 {
@@ -673,7 +766,7 @@ void UEOS_Gameinstance::ListenForReceivePartiesInvite(FDelegateOnPartyInvitesRec
 void UEOS_Gameinstance::HandleOnPartyInviteReceivedEx(const FUniqueNetId& LocalUserId,const IOnlinePartyJoinInfo& InviationToParty)
 {
 	
-	FTamBPOnlinePartyJoinInfo OnlinePartyJoinInfo = FTamBPOnlinePartyJoinInfo(InviationToParty);
+	FTamBPOnlinePartyJoinInfo OnlinePartyJoinInfo(InviationToParty);
 	DelegateOnPartyInvitesReceived.ExecuteIfBound(FUniqueNetIdRepl(LocalUserId), OnlinePartyJoinInfo);
 	return;
 }
@@ -814,6 +907,8 @@ FUniqueNetIdRepl UEOS_Gameinstance::GetPartyLeader(const FUniqueNetIdRepl& Local
 	}
 	return FUniqueNetIdRepl();
 }
+
+
 
 void UEOS_Gameinstance::CreateEOSSession(const FDelegateEOSSessionCreated OnSessionCreated, const FUniqueNetIdRepl& HostingPlayerId, const FName SessionName, const bool bIsDedicated, const int32 MaxNumOfPublicConnection, const int32 MaxNumOfPrivateConnection)
 {
@@ -1022,6 +1117,10 @@ void UEOS_Gameinstance::SearchFriendEOSSession(const FDelegateEOSSessionFound On
 	}
 }
 
+void UEOS_Gameinstance::SendPartyJoinRequest(const FUniqueNetIdRepl& PlayerRequesting, const FUniqueNetIdRepl& Recipient)
+{
+}
+
 void UEOS_Gameinstance::HandleFindFriendSessionCompleted(const int32 LocalUserId, const bool bWasSuccessful, const TArray<FOnlineSessionSearchResult>& SearchResults)
 {
 	TArray<FTamBPSessionSearchResultInfos> BpSearchResults;
@@ -1123,6 +1222,7 @@ void UEOS_Gameinstance::HandleJoinSessionCompleted(const FName SessionName, EOnJ
 		{
 			
 			FURL NewURL(nullptr, *SessionSearchInfo.ConnectInfos, ETravelType::TRAVEL_Absolute);
+			UE_LOG(LogTemp, Warning, TEXT("NEW URL TO TRAVEL TO ON CONNECTION: %s"), *NewURL.ToString());
 			FString BrowseError;
 			if (GEngine->Browse(GEngine->GetWorldContextFromWorldChecked(this->GetWorld()), NewURL, BrowseError) ==
 				EBrowseReturnVal::Failure)
@@ -1321,6 +1421,7 @@ void UEOS_Gameinstance::ReadEOSFriendList(FDelegateReadEOSFriendList OnReadCompl
 	UE_LOG(LogTemp, Error, TEXT("Read EOS Friend List, call didn't start!"));
 	return;
 }
+
 void UEOS_Gameinstance::OnReadFriendsComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr)
 {
 	DelegateReadEOSFriendList.ExecuteIfBound(bWasSuccessful, ErrorStr);
@@ -1432,7 +1533,6 @@ void UEOS_Gameinstance::HandleOnPresenceTaskCompleteDelegate(const FUniqueNetId&
 	DelegateOnPresenceTaskComplete.ExecuteIfBound(bWasSuccessfull, FUniqueNetIdRepl(UserId));
 	return;
 }
-
 
 void UEOS_Gameinstance::GetEOSFriendPresence(const FTamBPOnlineFriend Friend, FTamBPOnlinePresenceData & PresenceInfo)
 {

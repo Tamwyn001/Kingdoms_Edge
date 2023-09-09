@@ -9,7 +9,7 @@
 #include "EOS_GameMode.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FDelegateUnRegisterPlayer, const bool, bWasSuccessfull);
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateRegisterPlayer, const bool, bWasSuccessfull, const APlayerController*, PlayerController);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FDelegateRegisterPlayer, const bool, bWasSuccessfull);
 /**
  * 
  */

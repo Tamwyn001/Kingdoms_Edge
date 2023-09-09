@@ -186,7 +186,6 @@ void AEOS_GameMode::HandleRegisterPlayer(FName SessionName, const TArray<FUnique
 	DelegateRegisterPlayer.ExecuteIfBound(WasSuccessfull);
 }
 
-
 void AEOS_GameMode::HandleUnRegisterPlayer(FName SessionName, const TArray<FUniqueNetIdRef>& PlayerId, bool WasSuccessfull)
 {
 	IOnlineSubsystem* Subsystem = Online::GetSubsystem(this->GetWorld());

@@ -15,6 +15,7 @@
 #include "Templates/SharedPointer.h"
 #include "Delegates/Delegate.h"
 #include "Interfaces/OnlinePartyInterface.h"
+#include "Private/RedpointInterfaces/OnlineLobbyInterface.h"
 
 #include "EOS_Gameinstance.generated.h"
 
@@ -22,6 +23,7 @@
  * 
  */
 
+typedef TSharedPtr<IOnlineLobby, ESPMode::ThreadSafe> IOnlineLobbyPtr;
 
 
 //copyright 
@@ -327,17 +329,25 @@ public:
 	{
 
 	}
-	
-	FTamBPOnlinePartyJoinInfo(IOnlinePartyJoinInfoConstRef InParty)
+
+	//auto generated join info from get friend party join ingo 
+	FTamBPOnlinePartyJoinInfo(IOnlinePartyJoinInfoConstPtr InvitationToParty)
 	{
-		PartyJoinInfo = InParty.Get().AsWeak();
-		SenderId = FUniqueNetIdRepl(InParty.Get().GetSourceUserId());
+		PartyJoinInfo = InvitationToParty->AsWeak();
 	}
 
-	FTamBPOnlinePartyJoinInfo(const IOnlinePartyJoinInfo& InviationToParty)
+	FTamBPOnlinePartyJoinInfo(IOnlinePartyJoinInfoConstRef InvitationToParty)
 	{
-		PartyJoinInfo = InviationToParty.AsWeak();
-		SenderId = FUniqueNetIdRepl(InviationToParty.GetSourceUserId());
+		PartyJoinInfo = InvitationToParty->AsWeak();
+		SenderId = FUniqueNetIdRepl(InvitationToParty->GetSourceUserId());
+		UE_LOG(LogTemp, Warning, TEXT("Incomming Invite from: %s"), *InviationToParty->GetSourceUserId()->ToString());
+	}
+
+	FTamBPOnlinePartyJoinInfo(const IOnlinePartyJoinInfo& InvitationToParty)
+	{
+		PartyJoinInfo = InvitationToParty.AsWeak();
+		SenderId = FUniqueNetIdRepl(InvitationToParty.GetSourceUserId());
+		UE_LOG(LogTemp, Warning, TEXT("Incomming Invite from: %s"), *InviationToParty.GetSourceUserId()->ToString());
 	}
 	bool IsValid() const
 	{
@@ -380,12 +390,95 @@ public:
 	}
 };
 
+UENUM(BlueprintType)
+enum class ETamBPVariantDataType : uint8
+{
+	Boolean = 0 	UMETA(DisplayName = "Boolean"),
+	Int32 	UMETA(DisplayName = "Integer"),
+	Float 	UMETA(DisplayName = "Float"),
+	FString 	UMETA(DisplayName = "String")
+};
+
+USTRUCT(BlueprintType)
+struct 	FTamBPVariantData {
+	GENERATED_USTRUCT_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+		ETamBPVariantDataType Type;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+		bool AsBool;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+		int AsInt;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+		float AsFloat;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+		FString AsString;
+	FTamBPVariantData::FTamBPVariantData(){}
+	FTamBPVariantData::FTamBPVariantData(const bool InBool) 
+	{
+		AsBool = InBool;
+	}
+	FTamBPVariantData::FTamBPVariantData(const int InInt)
+	{
+		AsInt = InInt;
+	}
+	FTamBPVariantData::FTamBPVariantData(const float InFloat)
+	{
+		AsFloat = InFloat;
+	}
+	FTamBPVariantData::FTamBPVariantData(const FString InString)
+	{
+		AsString = InString;
+	}
+};
+
+USTRUCT(BlueprintType)
+struct FTamBPPartyMetadata {
+	GENERATED_USTRUCT_BODY()
+
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+		FString AttributeName;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+		FTamBPVariantData AttributeValue;
+
+	FTamBPPartyMetadata::FTamBPPartyMetadata() {};
+	FTamBPPartyMetadata::FTamBPPartyMetadata(FString InAttributeName, const FTamBPVariantData& InAttributeValue)
+	{
+		AttributeName = InAttributeName;
+		AttributeValue = InAttributeValue;
+	}
+	FVariantData FTamBPPartyMetadata::GetAttributeValue()
+	{
+		switch (AttributeValue.Type)
+		{
+		default:
+			break;
+		case ETamBPVariantDataType::Boolean:
+			return FVariantData(AttributeValue.AsBool);
+				break;
+		case ETamBPVariantDataType::Int32:
+			return FVariantData(AttributeValue.AsInt);
+				break;
+		case ETamBPVariantDataType::Float:
+			return FVariantData(AttributeValue.AsFloat);
+				break;
+		case ETamBPVariantDataType::FString:
+			return FVariantData(AttributeValue.AsString);
+				break;
+		}
+		return FVariantData();
+	}
+};
+
 USTRUCT(BlueprintType)
 struct 	FTamBPSessionSearchResultInfos{
 	GENERATED_USTRUCT_BODY()
 
 public:
 	TSharedPtr<FOnlineSessionSearchResult> RawResult;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FString ConnectInfos;
 	FTamBPSessionSearchResultInfos()
 	{
@@ -648,11 +741,11 @@ UENUM(BlueprintType)
 enum class ETamBPSendPartyInvitationCompletionResult :uint8
 {
 	NotLoggedIn = static_cast<uint8>(ESendPartyInvitationCompletionResult::NotLoggedIn),
-	InvitePending= static_cast<uint8>(ESendPartyInvitationCompletionResult::InvitePending),
-	AlreadyInParty=static_cast<uint8>(ESendPartyInvitationCompletionResult::AlreadyInParty),
-	PartyFull=static_cast<uint8>(ESendPartyInvitationCompletionResult::PartyFull),
-	NoPermission= static_cast<uint8>(ESendPartyInvitationCompletionResult::NoPermission),
-	RateLimited= static_cast<uint8>(ESendPartyInvitationCompletionResult::RateLimited),
+	InvitePending = static_cast<uint8>(ESendPartyInvitationCompletionResult::InvitePending),
+	AlreadyInParty = static_cast<uint8>(ESendPartyInvitationCompletionResult::AlreadyInParty),
+	PartyFull = static_cast<uint8>(ESendPartyInvitationCompletionResult::PartyFull),
+	NoPermission = static_cast<uint8>(ESendPartyInvitationCompletionResult::NoPermission),
+	RateLimited = static_cast<uint8>(ESendPartyInvitationCompletionResult::RateLimited),
 	UnknownInternalFailure = 0,
 	Succeeded = 1
 };
@@ -770,6 +863,7 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FDelegateStartEOSSession, const bool, bWasSucc
 DECLARE_DYNAMIC_DELEGATE_OneParam(FDelegateEnumerateEOSUserFile, const bool, bWasSuccessfull);
 
 
+
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateEOSFileReadAsSaveGame, const bool, WasSucessful, USaveGame*, SaveData);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateFindEOSSessionBySessionId, const bool, bWasSuccessfull, const FTamBPSessionSearchResultInfos &, SearchResult);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateReadEOSFriendList, const bool, bWasSuccessfull, const FString, ErrorStr);
@@ -799,7 +893,8 @@ DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateQueryUsersInfo,
 	bool, WasSucessfull,
 	const TArray<FUniqueNetIdRepl>&, QueriedUsers,
 	const FString, ErrorString);
-
+DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateEOSGetFriendPartyJoinInfo, 
+	const bool, WasSucessful, const FTamBPOnlinePartyJoinInfo&, JoinInfo, const FString Error);
 
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateLeavePartyCompleted,
 	const FUniqueNetIdRepl &, LocalUserId, const FTamBPOnlinePartyId &	, PartyId,
@@ -917,6 +1012,8 @@ public:
 		FDelegateEOSUserFileWriten DelegateEOSUserFileWriten;
 	UPROPERTY()
 		FDelegateQueryUsersInfo DelegateQueryUsersInfo;
+	UPROPERTY()
+		FDelegateEOSGetFriendPartyJoinInfo DelegateEOSGetFriendPartyJoinInfo;
 	//--- Blueprint Exposed Functions ---
 
 //_IDENTITY_
@@ -1048,7 +1145,20 @@ public:
 	
 	UFUNCTION(BlueprintCallable, DisplayName = "Get Leader", Category = "Tamwyn's EOS|Party")
 		FUniqueNetIdRepl GetPartyLeader(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId);
-//_SESSION_
+
+	/**
+	* Find join info to party with specific save. Scenario is to join a lobby with the friend we played last time
+	* @param Requesting
+	* @param Friend
+	* @param Save Guid to search to
+	*/
+	UFUNCTION(BlueprintCallable, DisplayName = "Request Friend Party Join Info", Category = "Tamwyn's EOS|Party")
+		void RequestFriendPartyJoinInfo(const FUniqueNetIdRepl& PlayerRequesting, const FUniqueNetIdRepl& Recipient, const FGuid& PartyGuid);
+
+	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Metadata", Category = "Tamwyn's EOS|Party")
+		bool UpdatePartyMetadata(const FUniqueNetIdRepl& LocalUserId, const FOnlinePartyId& PartyId, const TArray<FTamBPPartyMetadata>& MetadataToUpload);
+
+	//_SESSION_	
 	/**
 	Create a session on EOS, in wich players from differents machines can play together
 	@param Delegate
