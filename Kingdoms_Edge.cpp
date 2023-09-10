@@ -4,3 +4,5 @@
 #include "Modules/ModuleManager.h"
 
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, Kingdoms_Edge, "Kingdoms_Edge" );
+
+DEFINE_LOG_CATEGORY(LogTamEOS);

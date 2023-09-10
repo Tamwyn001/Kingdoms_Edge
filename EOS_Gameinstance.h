@@ -4,6 +4,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Kingdoms_Edge.h"
 #include "UObject/Class.h"
 #include "Engine/GameInstance.h"
 #include "OnlineSessionSettings.h"
@@ -340,14 +341,14 @@ public:
 	{
 		PartyJoinInfo = InvitationToParty->AsWeak();
 		SenderId = FUniqueNetIdRepl(InvitationToParty->GetSourceUserId());
-		UE_LOG(LogTemp, Warning, TEXT("Incomming Invite from: %s"), *InviationToParty->GetSourceUserId()->ToString());
+		UE_LOG(LogTamEOS, Warning, TEXT("Incomming Invite from: %s"), *InvitationToParty->GetSourceUserId()->ToString());
 	}
 
 	FTamBPOnlinePartyJoinInfo(const IOnlinePartyJoinInfo& InvitationToParty)
 	{
 		PartyJoinInfo = InvitationToParty.AsWeak();
 		SenderId = FUniqueNetIdRepl(InvitationToParty.GetSourceUserId());
-		UE_LOG(LogTemp, Warning, TEXT("Incomming Invite from: %s"), *InviationToParty.GetSourceUserId()->ToString());
+		UE_LOG(LogTamEOS, Warning, TEXT("Incomming Invite from: %s"), *InvitationToParty.GetSourceUserId()->ToString());
 	}
 	bool IsValid() const
 	{
@@ -414,20 +415,20 @@ public:
 		float AsFloat;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		FString AsString;
-	FTamBPVariantData::FTamBPVariantData(){}
-	FTamBPVariantData::FTamBPVariantData(const bool InBool) 
+	FTamBPVariantData(){}
+	FTamBPVariantData(const bool InBool) 
 	{
 		AsBool = InBool;
 	}
-	FTamBPVariantData::FTamBPVariantData(const int InInt)
+	FTamBPVariantData(const int InInt)
 	{
 		AsInt = InInt;
 	}
-	FTamBPVariantData::FTamBPVariantData(const float InFloat)
+	FTamBPVariantData(const float InFloat)
 	{
 		AsFloat = InFloat;
 	}
-	FTamBPVariantData::FTamBPVariantData(const FString InString)
+	FTamBPVariantData(const FString InString)
 	{
 		AsString = InString;
 	}
@@ -443,13 +444,13 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		FTamBPVariantData AttributeValue;
 
-	FTamBPPartyMetadata::FTamBPPartyMetadata() {};
-	FTamBPPartyMetadata::FTamBPPartyMetadata(FString InAttributeName, const FTamBPVariantData& InAttributeValue)
+	FTamBPPartyMetadata() {};
+	FTamBPPartyMetadata(FString InAttributeName, const FTamBPVariantData& InAttributeValue)
 	{
 		AttributeName = InAttributeName;
 		AttributeValue = InAttributeValue;
 	}
-	FVariantData FTamBPPartyMetadata::GetAttributeValue()
+	FVariantData GetAttributeValue()
 	{
 		switch (AttributeValue.Type)
 		{
@@ -482,7 +483,7 @@ public:
 	FString ConnectInfos;
 	FTamBPSessionSearchResultInfos()
 	{
-		RawResult = NULL;
+		RawResult = nullptr;
 	}
 	FTamBPSessionSearchResultInfos(FOnlineSessionSearchResult NewRawResult)
 	{
@@ -509,7 +510,6 @@ public:
 	}
 };
 //expose some enum to bp
-
 
 USTRUCT(BlueprintType)
 struct 	FTamBPOnlineFriend {
@@ -598,7 +598,6 @@ public:
 	}
 
 };
-
 
 USTRUCT(BlueprintType)
 struct 	FTamBPOnlineSessionId {
@@ -734,8 +733,6 @@ enum class ETamBPLeavePartyCompletionResult : uint8
 	UnknownInternalFailure = static_cast<uint8>(ELeavePartyCompletionResult::UnknownInternalFailure),
 	Succeeded = static_cast<uint8>(ELeavePartyCompletionResult::Succeeded)
 };
-
-
 
 UENUM(BlueprintType)
 enum class ETamBPSendPartyInvitationCompletionResult :uint8
@@ -893,11 +890,12 @@ DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateQueryUsersInfo,
 	bool, WasSucessfull,
 	const TArray<FUniqueNetIdRepl>&, QueriedUsers,
 	const FString, ErrorString);
+
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateEOSGetFriendPartyJoinInfo, 
-	const bool, WasSucessful, const FTamBPOnlinePartyJoinInfo&, JoinInfo, const FString Error);
+	const bool, WasSucessfull, const FTamBPOnlinePartyJoinInfo&, JoinInfo, const FString, ErrorString);
 
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateLeavePartyCompleted,
-	const FUniqueNetIdRepl &, LocalUserId, const FTamBPOnlinePartyId &	, PartyId,
+	const FUniqueNetIdRepl &, LocalUserId, const FTamBPOnlinePartyId &, PartyId,
 	const ETamBPLeavePartyCompletionResult, Result);
 DECLARE_DYNAMIC_DELEGATE_FourParams(FDelegateKickMemberCompleted,
 	const FUniqueNetIdRepl &, UserIdLeader, const FTamBPOnlinePartyId &, PartyId,
@@ -914,11 +912,13 @@ DECLARE_DYNAMIC_DELEGATE_FourParams(FDelegateInviteMemberCompleted,
 DECLARE_DYNAMIC_DELEGATE_FourParams(FDelegateCancelInviteMemberCompleted,
 	const FUniqueNetIdRepl&, Sender, const FTamBPOnlinePartyId&, PartyId,
 	const FUniqueNetIdRepl&, Recipient,
-	const FString, Error);
+	const FString, ErrorString);
 DECLARE_DYNAMIC_DELEGATE_FourParams(FDelegateJoinPartyCompleted,
 	const FUniqueNetIdRepl&, LocalUserId, const FTamBPOnlinePartyId&, PartyId,
 	const ETamBPJoinPartyCompletionResult, Result,
 	const int32, NotApprovedReason);
+
+//no SDK support
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateOnPartyJoinRequestReceived,
 	const FUniqueNetIdRepl&, LocalUserId,
 	const FTamBPOnlinePartyId&, PartyId,
@@ -1025,7 +1025,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable,DisplayName="Login Player", Category = "Tamwyn's EOS|Connection")
 	void LoginPlayer(
-		FDelegateLoginEOSSubsystem OnLoginCompleted,
+		const FDelegateLoginEOSSubsystem & OnLoginCompleted,
 		int32 LocalUserNum);
 
 	/**
@@ -1036,7 +1036,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Logout Player", Category = "Tamwyn's EOS|Connection")
 		void LogoutPlayer(
-			FDelegateLogoutEOSSubsystem OnLogoutCompleted,
+			const FDelegateLogoutEOSSubsystem& OnLogoutCompleted,
 			int32 LocalUserNum);
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Is Player Logged in", Category = "Tamwyn's EOS|Connection")
 		bool IsPlayerLoggedIn(int32 LocalUserNum);
@@ -1053,42 +1053,43 @@ public:
 		void GetPlayerAccount(const FUniqueNetIdRepl& UniqueNetID, FTamBPUserOnlineAccount& UserAccount);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Auth Attribute", Category = "Tamwyn's EOS|Player Infos")
-		FString GetAuthAttribute(FTamBPUserOnlineAccount TargetAccount, FString Key, bool& Found);
+		FString GetAuthAttribute(const FTamBPUserOnlineAccount & TargetAccount, FString Key, bool& Found);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Player UniqueNetId from Player Controller", Category = "Tamwyn's EOS|Player Infos")
-		void GetPlayerUniqueIdPlayerController(APlayerController* PlayerController, FUniqueNetIdRepl&UniqueNetID);
+		void GetPlayerUniqueIdPlayerController(const APlayerController* PlayerController, FUniqueNetIdRepl& UniqueNetID);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Player UniqueNetId from Player State", Category = "Tamwyn's EOS|Player Infos")
-		void GetPlayerUniqueIdPlayerState(APlayerState* PlayerState, FUniqueNetIdRepl& UniqueNetID);
-
-
+		void GetPlayerUniqueIdPlayerState(const APlayerState* PlayerState, FUniqueNetIdRepl& UniqueNetID);
 
 	UFUNCTION(BlueprintCallable, DisplayName = "Get Member UniqueNetId", Category = "Tamwyn's EOS|Player Infos")
 		void GetMemberUniqueId(const FTamBPOnlinePartyMember& PartyMember, FUniqueNetIdRepl& UniqueNetID);
 
 	UFUNCTION(BlueprintCallable, DisplayName = "Query Users Info", Category = "Tamwyn's EOS|Player Infos")
-		void QueryUsersInfos(FDelegateQueryUsersInfo OnInfoQueried, const TArray< FUniqueNetIdRepl>& UniqueNetIdsToQuery);
+		void QueryUsersInfos(const FDelegateQueryUsersInfo& OnInfoQueried, const TArray< FUniqueNetIdRepl>& UniqueNetIdsToQuery);
 
 	/*
 	*Used to retrieve all cached infos about a player unique net id
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintCallable, DisplayName = "Get User Info", Category = "Tamwyn's EOS|Player Infos")
-		void GetUserInfo(const int32 LocalUserNum, FUniqueNetIdRepl UniqueNetID, FTamBPUserInfos& UserInfo);
+		void GetUserInfo(const int32 LocalUserNum,const FUniqueNetIdRepl& UniqueNetID, FTamBPUserInfos& UserInfo);
+//_Avatars
 
+	//UFUNCTION(BlueprintCallable, DisplayName = "Get Cached Plateform Avatar")
+		bool GetCachedPlateformAvatar(const FUniqueNetIdRepl& TargetUser, UTexture2D& OutTexture);
 
 //_PARTY_	
 //notes:When a player joins a party via the overlay, the party system will automatically leave the current presence party 
 //	(if there is one) and join the new party.
 
 	UFUNCTION(BlueprintCallable, DisplayName = "Create Party", Category = "Tamwyn's EOS|Party")
-		void CreateParty(FDelegateCreatePartyCompleted OnPartyCreated, int32 MaxMembers);
+		void CreateParty(const FDelegateCreatePartyCompleted& OnPartyCreated, int32 MaxMembers);
 	UFUNCTION(BlueprintCallable, DisplayName = "Kick Member", Category = "Tamwyn's EOS|Party")
-		void KickMember(FDelegateKickMemberCompleted OnMemberKicked,const FUniqueNetIdRepl& UserIdLeader,
+		void KickMember(const FDelegateKickMemberCompleted & OnMemberKicked,const FUniqueNetIdRepl& UserIdLeader,
 			const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& MemberToKick);
 	UFUNCTION(BlueprintCallable, DisplayName = "Promote Member", Category = "Tamwyn's EOS|Party")
-		void PromoteMember(FDelegatePromoteMemberCompleted OnMemberPromoted,const FUniqueNetIdRepl&  UserIdLeader, const FTamBPOnlinePartyId &PartyId, const FUniqueNetIdRepl &UserIdToPromote);
+		void PromoteMember(const FDelegatePromoteMemberCompleted & OnMemberPromoted,const FUniqueNetIdRepl&  UserIdLeader, const FTamBPOnlinePartyId &PartyId, const FUniqueNetIdRepl &UserIdToPromote);
 	UFUNCTION(BlueprintCallable, DisplayName = "Leave Party", Category = "Tamwyn's EOS|Party")
-		void LeaveParty(FDelegateLeavePartyCompleted OnPartyLeaved, int32 LocalUserNum, const FTamBPOnlinePartyId& PartyId);
+		void LeaveParty(const FDelegateLeavePartyCompleted & OnPartyLeaved, int32 LocalUserNum, const FTamBPOnlinePartyId& PartyId);
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Joined Parties", Category = "Tamwyn's EOS|Party")
 		bool GetJoinedParties(const FUniqueNetIdRepl &LocalUserId, TArray<FTamBPOnlinePartyId>& OutPartyIdArray);
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Party Members", Category = "Tamwyn's EOS|Party")
@@ -1115,22 +1116,22 @@ public:
 	@param The user iD
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Listen for Parties Invites Changed", Category = "Tamwyn's EOS|Party")
-		void ListenForChangePartiesInvite(const FDelegateOnPartyInvitesChanged OnChanged);
+		void ListenForChangePartiesInvite(const FDelegateOnPartyInvitesChanged & OnChanged);
 	/**
 	 Bind an event taht executes each time the user receives an invite. Useful to display pop-ups.
 	 @param The user iD
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Listen for Parties Invites Received", Category = "Tamwyn's EOS|Party")
-		void ListenForReceivePartiesInvite(const FDelegateOnPartyInvitesReceived OnReceived);
+		void ListenForReceivePartiesInvite(const FDelegateOnPartyInvitesReceived & OnReceived);
 
 	UFUNCTION(BlueprintCallable, DisplayName = "Join Party", Category = "Tamwyn's EOS|Party")
-		void JoinParty(const FDelegateJoinPartyCompleted OnJoined, const FUniqueNetIdRepl& UserId, const FTamBPOnlinePartyJoinInfo& PartyToJoin);
+		void JoinParty(const FDelegateJoinPartyCompleted & OnJoined, const FUniqueNetIdRepl& UserId, const FTamBPOnlinePartyJoinInfo& PartyToJoin);
 	/**
 	Call on leader to listen to leaders relevant event. E.g join requests
 	@param Delegate
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Setup Leader Listens", Category = "Tamwyn's EOS|Party")
-		void SetupLeaderListens(const FDelegateOnPartyJoinRequestReceived  JoinRequestReceived);
+		void SetupLeaderListens(const FDelegateOnPartyJoinRequestReceived & JoinRequestReceived);
 	/**
 	* Call on leader to listen to members relevant event. E.g member joins, leaves or is promoted
 	* @param Delegate
@@ -1138,7 +1139,7 @@ public:
 	* @param Delegate
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Setup Members Listens", Category = "Tamwyn's EOS|Party")
-		void SetupMembersListens(const FDelegateOnPartyMemberJoined OnPartyMemberJoined, const FDelegateOnPartyMemberExited OnPartyMemberExited, const FDelegateOnPartyMemberPromoted OnPartyMemberPromoted);
+		void SetupMembersListens(const FDelegateOnPartyMemberJoined & OnPartyMemberJoined, const FDelegateOnPartyMemberExited & OnPartyMemberExited, const FDelegateOnPartyMemberPromoted & OnPartyMemberPromoted);
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Is Party Leader", Category = "Tamwyn's EOS|Party")
 		bool IsMemberPartyLeader(const FUniqueNetIdRepl& LocalUserId,const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& MemberUniqueId);
@@ -1153,10 +1154,14 @@ public:
 	* @param Save Guid to search to
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Request Friend Party Join Info", Category = "Tamwyn's EOS|Party")
-		void RequestFriendPartyJoinInfo(const FUniqueNetIdRepl& PlayerRequesting, const FUniqueNetIdRepl& Recipient, const FGuid& PartyGuid);
+		void RequestFriendPartyJoinInfo(const FDelegateEOSGetFriendPartyJoinInfo& OnPartyFound, const FUniqueNetIdRepl& PlayerRequesting, const FUniqueNetIdRepl& Recipient, const TArray<FTamBPPartyMetadata>& SearchFilters, const int ResultsLimit);
 
 	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Metadata", Category = "Tamwyn's EOS|Party")
-		bool UpdatePartyMetadata(const FUniqueNetIdRepl& LocalUserId, const FOnlinePartyId& PartyId, const TArray<FTamBPPartyMetadata>& MetadataToUpload);
+		bool UpdatePartyMetadata(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId, const TArray<FTamBPPartyMetadata>& MetadataToUpload);
+	UFUNCTION(BlueprintPure, DisplayName = "Get Party Join Token", Category = "Tamwyn's EOS|Party")
+		FString GetPartyJoinToken(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId);
+
+
 
 	//_SESSION_	
 	/**
@@ -1168,7 +1173,7 @@ public:
 	@param Max private connections
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Create EOS Session", Category = "Tamwyn's EOS|Session")
-		void CreateEOSSession(const FDelegateEOSSessionCreated OnSessionCreated, const FUniqueNetIdRepl& HostingPlayerId, const FName SessionName, const bool bIsDedicated, const int32 MaxNumOfPublicConnection, const int32 MaxNumOfPrivateConnection);
+		void CreateEOSSession(const FDelegateEOSSessionCreated & OnSessionCreated, const FUniqueNetIdRepl& HostingPlayerId, const FName SessionName, const bool bIsDedicated, const int32 MaxNumOfPublicConnection, const int32 MaxNumOfPrivateConnection);
 
 	/**
 	Destroy a given session. When your server has finished hosting a game, or when the game client disconnects from a server early, you need to destroy the local session.
@@ -1176,7 +1181,7 @@ public:
 	@param The session Name is the local name of the session for the client or server. It should be the value you specified when creating or joining the session (depending on which you called).
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Destroy EOS Session", Category = "Tamwyn's EOS|Session")
-		void DestroyEOSSession(const FDelegateEOSSessionDestroyed OnSessionDestroyed, const FName SessionName);
+		void DestroyEOSSession(const FDelegateEOSSessionDestroyed & OnSessionDestroyed, const FName SessionName);
 
 	/**
 	* Find a session to join
@@ -1184,7 +1189,7 @@ public:
 	@param The max number of search results
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Search EOS Session", Category = "Tamwyn's EOS|Session")
-		void SearchEOSSession(const FDelegateEOSSessionFound OnSessionsFound, int32 MaxResult);
+		void SearchEOSSession(const FDelegateEOSSessionFound & OnSessionsFound, int32 MaxResult);
 
 	/**
 	Find a session of a given friend
@@ -1192,14 +1197,14 @@ public:
 	@param The max number of search results
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Search Friend's EOS Session", Category = "Tamwyn's EOS|Session")
-		void SearchFriendEOSSession(const FDelegateEOSSessionFound OnSessionsFound, const int32 LocalUserNum, const FUniqueNetIdRepl& FriendUniqueNetId);
+		void SearchFriendEOSSession(const FDelegateEOSSessionFound & OnSessionsFound, const int32 LocalUserNum, const FUniqueNetIdRepl& FriendUniqueNetId);
 
 	/**
 	Cancel session search
 	@param Delegate
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Cancel Search EOS Session", Category = "Tamwyn's EOS|Session")
-		void CancelSearchEOSSession(const FDelegateCancelSearchEOSSession OnSearchCanceled);
+		void CancelSearchEOSSession(const FDelegateCancelSearchEOSSession & OnSearchCanceled);
 
 	/**
 	Join a given session
@@ -1207,7 +1212,7 @@ public:
 	@param The sessions search infos: get from " Seach EOS Session" .
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Join EOS Session", Category = "Tamwyn's EOS|Session")
-		void JoinEOSSession(const FDelegateEOSSessionJoined OnSessionsJoined, FTamBPSessionSearchResultInfos SessionSearchInfo);
+		void JoinEOSSession(const FDelegateEOSSessionJoined & OnSessionsJoined, const FTamBPSessionSearchResultInfos & SessionSearchInfo);
 
 	/**
 	Find a session given by a sessionID, for exemple through presence
@@ -1215,7 +1220,7 @@ public:
 	@param The sessions search infos: get from " Seach EOS Session" .
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Get EOS Session from Session ID", Category = "Tamwyn's EOS|Session")
-		void FindEOSSessionFromSessionID(const FDelegateFindEOSSessionBySessionId OnSessionsFound, const FUniqueNetIdRepl& SearchingUser, const FTamBPOnlineSessionId& SessionId, const FTamBPOnlineFriend& FriendId);
+		void FindEOSSessionFromSessionID(const FDelegateFindEOSSessionBySessionId & OnSessionsFound, const FUniqueNetIdRepl& SearchingUser, const FTamBPOnlineSessionId& SessionId, const FTamBPOnlineFriend& FriendId);
 	/**
 	Get the current state of the passed ssession.
 	@param Local name of the session. Should match name given in create seesion.
@@ -1229,7 +1234,7 @@ public:
 	@param Local name of the session. Should match name given in create seesion.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Refresh EOS Session", Category = "Tamwyn's EOS|Session")
-		void UpdateEOSSession(const FDelegateUpdateEOSSession OnSessionUpdated, const FName SessionName,const bool bSubmitToEOS);
+		void UpdateEOSSession(const FDelegateUpdateEOSSession & OnSessionUpdated, const FName SessionName,const bool bSubmitToEOS);
 
 	/**
 	Marks an EOS Session as InProgress instead of Lobbie or Pending. An EOS session must be created before.
@@ -1237,7 +1242,7 @@ public:
 	@param Local name of the session. Should match name given in create seesion.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Start EOS Session", Category = "Tamwyn's EOS|Session")
-		void StartEOSSession(const FDelegateStartEOSSession OnSessionStarted, const FName SessionName);
+		void StartEOSSession(const FDelegateStartEOSSession & OnSessionStarted, const FName SessionName);
 
 	/**
 	* Get the settings of the given session.
@@ -1254,13 +1259,13 @@ public:
 
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Read EOS Friend List", Category = "Tamwyn's EOS|Friends")
-		void ReadEOSFriendList(FDelegateReadEOSFriendList OnReadCompleted, const int32 LocalUserNum);
+		void ReadEOSFriendList(const FDelegateReadEOSFriendList & OnReadCompleted, const int32 LocalUserNum);
 	
 	/**
 	* Read the EOS cached Friend list, need to call "Read EOS Friend List" once before all friend call!
 
 	*/
-	UFUNCTION(BlueprintCallable, DisplayName = "Get EOS Friend List", Category = "Tamwyn's EOS|Friends")
+	UFUNCTION(BlueprintCallable, DisplayName = "Get Cached EOS Friend List", Category = "Tamwyn's EOS|Friends")
 		void GetEOSFriendList(const int32 LocalUserNum, bool& bWasSuccessfull, TArray<FTamBPOnlineFriend> & Friends);
 
 	/**
@@ -1273,20 +1278,20 @@ public:
 	* Listen to changes in the friend list, you can call get firend list on the delegate
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Listen To EOS Friends Changes", Category = "Tamwyn's EOS|Friends")
-		void ListenToFriendsChanges(FDelegateFriendListChanged OnFriendListChanged, int32 LocalUserNum);
+		void ListenToFriendsChanges(const FDelegateFriendListChanged&  OnFriendListChanged, int32 LocalUserNum);
 
 	/**
 	* Get the UniqueNetId of a friend, you can then call GetUserAccount to AccessInfos
 
 	*/
-	UFUNCTION(BlueprintCallable, DisplayName = "Get EOS Friend Uniquet Net Id", Category = "Tamwyn's EOS|Friends")
-		void GetEOSFriendUniqueNetId(const FTamBPOnlineFriend Friend,  FUniqueNetIdRepl& UniqueNetID);
+	UFUNCTION(BlueprintCallable, DisplayName = "Get EOS Friend Unique Net Id", Category = "Tamwyn's EOS|Friends")
+		void GetEOSFriendUniqueNetId(const FTamBPOnlineFriend & Friend,  FUniqueNetIdRepl& UniqueNetID);
 	/**
 	* Need to call QueryPresence if EpicGames is online subsystem before call presence!
 
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Querry EOS Presence", Category = "Tamwyn's EOS|Friends")
-		void QuerryEOSPresence(FDelegateOnPresenceTaskComplete OnPresenceTaskComplete, const int32 LocalUserNum, const FTamBPOnlineFriend Friend);
+		void QuerryEOSPresence(const FDelegateOnPresenceTaskComplete & OnPresenceTaskComplete, const int32 LocalUserNum, const FTamBPOnlineFriend & Friend);
 
 
 
@@ -1294,8 +1299,8 @@ public:
 	* Get the friend Presence, need to call "Read EOS Friend List" once before all friend call, Need to call QueryPresence if EpicGames is online subsystem!
 
 	*/
-	UFUNCTION(BlueprintPure, DisplayName = "Get EOS Friend Presence", Category = "Tamwyn's EOS|Friends")
-		void GetEOSFriendPresence(const FTamBPOnlineFriend Friend, FTamBPOnlinePresenceData & PresenceInfo);
+	UFUNCTION(BlueprintPure, DisplayName = "Get cached EOS Friend Presence", Category = "Tamwyn's EOS|Friends")
+		void GetEOSFriendPresence(const FTamBPOnlineFriend & Friend, FTamBPOnlinePresenceData & PresenceInfo);
 
 
 	//Player Data Storage
@@ -1304,18 +1309,18 @@ public:
 	* Before you can read files from Player Data Storage, you need to query the list of files that the user has by calling "Enumerate User Files":	
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Enumerate User File", Category = "Tamwyn's EOS|User Title Storage")
-		void EnumerateEOSUserFile(FDelegateEnumerateEOSUserFile OnEnumerateComplete, FUniqueNetIdRepl UserID);
+		void EnumerateEOSUserFile(const FDelegateEnumerateEOSUserFile&  OnEnumerateComplete, const FUniqueNetIdRepl & UserID);
 	/**
 	*Call EnumerateUserFile before!
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Get User File List", Category = "Tamwyn's EOS|User Title Storage")
-		void GetEOSUserFileList(FUniqueNetIdRepl LocalUserId, TArray<FString>& PlayerFileNames);
+		void GetEOSUserFileList(const FUniqueNetIdRepl & LocalUserId, TArray<FString>& PlayerFileNames);
 
 	UFUNCTION(BlueprintCallable, DisplayName = "Read User File as SaveGameObject", Category = "Tamwyn's EOS|User Title Storage")
-		void ReadEOSUserFileAsSavegameObject(FDelegateEOSFileReadAsSaveGame OnFileRead,const FUniqueNetIdRepl LocalUserId,const FString PlayerFileName);
+		void ReadEOSUserFileAsSavegameObject(const FDelegateEOSFileReadAsSaveGame & OnFileRead,const FUniqueNetIdRepl & LocalUserId,const FString PlayerFileName);
 
 	UFUNCTION(BlueprintCallable, DisplayName = "Write SaveGameObject as User File", Category = "Tamwyn's EOS|User Title Storage")
-		void WriteSavegameObjectAsEOSUserFile(FDelegateEOSUserFileWriten OnFileWrote, FUniqueNetIdRepl LocalUserId, FString PlayerFileName ,USaveGame* SaveData, bool CompressBeforeUpload);
+		void WriteSavegameObjectAsEOSUserFile(const FDelegateEOSUserFileWriten & OnFileWrote, const FUniqueNetIdRepl & LocalUserId, const FString PlayerFileName, USaveGame* SaveData,const bool CompressBeforeUpload);
 	
 
 
