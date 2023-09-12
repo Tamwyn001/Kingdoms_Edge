@@ -13,10 +13,10 @@
 #include "OnlineSubsystemTypes.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "Interfaces/OnlineIdentityInterface.h"
+#include "E:/UE_5.1/Engine/Plugins/Marketplace/EOSOnlineSubsystem/Source/RedpointEOSInterfaces/Private/Interfaces/OnlineLobbyInterface.h"
 #include "Templates/SharedPointer.h"
 #include "Delegates/Delegate.h"
 #include "Interfaces/OnlinePartyInterface.h"
-#include "Private/RedpointInterfaces/OnlineLobbyInterface.h"
 
 #include "EOS_Gameinstance.generated.h"
 
@@ -864,6 +864,7 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FDelegateEnumerateEOSUserFile, const bool, bWa
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateEOSFileReadAsSaveGame, const bool, WasSucessful, USaveGame*, SaveData);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateFindEOSSessionBySessionId, const bool, bWasSuccessfull, const FTamBPSessionSearchResultInfos &, SearchResult);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateReadEOSFriendList, const bool, bWasSuccessfull, const FString, ErrorStr);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateUpdateAdvancedPartyMetadata, const bool, bWasSuccessfull, const FString, ErrorStr);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateOnPresenceTaskComplete, const bool, bWasSuccessfull, const FUniqueNetIdRepl&, UserId);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateLoginEOSSubsystem,const bool, bWasSuccessfull,const FString, IdentityProvider);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FDelegateEOSSessionCreated, const bool, bWasSuccessfull, const int32, UniqueSessionId);
@@ -1014,6 +1015,8 @@ public:
 		FDelegateQueryUsersInfo DelegateQueryUsersInfo;
 	UPROPERTY()
 		FDelegateEOSGetFriendPartyJoinInfo DelegateEOSGetFriendPartyJoinInfo;
+	UPROPERTY()
+		FDelegateUpdateAdvancedPartyMetadata DelegateUpdateAdvancedPartyMetadata;
 	//--- Blueprint Exposed Functions ---
 
 //_IDENTITY_
@@ -1158,8 +1161,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Metadata", Category = "Tamwyn's EOS|Party")
 		bool UpdatePartyMetadata(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId, const TArray<FTamBPPartyMetadata>& MetadataToUpload);
-	UFUNCTION(BlueprintPure, DisplayName = "Get Party Join Token", Category = "Tamwyn's EOS|Party")
-		FString GetPartyJoinToken(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId);
+	
+	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Advanced Metadata", Category = "Tamwyn's EOS|Party")
+		void UpdatePartyAdvancedMetadata(const FDelegateUpdateAdvancedPartyMetadata& OnMetadataUpdated, const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId, const bool IsPublic, const bool IsLocked, const int32 NewCapacity);
+
+	UFUNCTION(BlueprintPure, DisplayName = "Get Party Join Json", Category = "Tamwyn's EOS|Party")
+		FString GetPartyJoinJson(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId);
 
 
 

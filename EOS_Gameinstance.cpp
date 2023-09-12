@@ -358,6 +358,9 @@ void UEOS_Gameinstance::CreateParty(const FDelegateCreatePartyCompleted& OnParty
 		{
 			PartyConfig->bIsAcceptingMembers = true;
 			PartyConfig->MaxMembers = MaxMembers;
+			PartyConfig->bShouldRemoveOnDisconnection = true;
+			PartyConfig->JoinRequestAction = EJoinRequestAction::AutoApprove;
+
 			//the lambda in the if takes care of calling the function, the delegate, and the bp delgate
 			if (!Party->CreateParty(*Identity->GetUniquePlayerId(0).Get(),
 				(FOnlinePartyTypeId)PartyTypeId, *PartyConfig,
@@ -366,6 +369,7 @@ void UEOS_Gameinstance::CreateParty(const FDelegateCreatePartyCompleted& OnParty
 					const TSharedPtr<const FOnlinePartyId>& PartyId,
 					const ECreatePartyCompletionResult Result)
 					{
+						
 						FTamBPOnlinePartyId OnlinePartyId;
 						OnlinePartyId.SetOnlinePartyId(PartyId);
 						this->DelegateCreatePartyCompleted.ExecuteIfBound(FUniqueNetIdRepl(LocalUserId), OnlinePartyId,
@@ -546,7 +550,7 @@ void UEOS_Gameinstance::RequestFriendPartyJoinInfo(const FDelegateEOSGetFriendPa
 
 	//parties are an extention of lobbies, so we use the lobby interface to search a party
 	TSharedRef<FOnlineLobbySearchQuery> Search = MakeShared<FOnlineLobbySearchQuery>();
-
+	
 	// To search by settings, add a LobbySetting and SettingValue to search for:
 	for(FTamBPPartyMetadata It_Filter : SearchFilters)
 	{
@@ -571,6 +575,10 @@ void UEOS_Gameinstance::RequestFriendPartyJoinInfo(const FDelegateEOSGetFriendPa
 				if (Error.WasSuccessful())
 				{
 					UE_LOG(LogTamEOS, Warning, TEXT("Request Friend join Lobby info suceeded, found %ld results!"), Lobbies.Num());
+					if (Lobbies.Num() == 0)
+					{
+						this->DelegateEOSGetFriendPartyJoinInfo.ExecuteIfBound(false, FTamBPOnlinePartyJoinInfo(), FString(TEXT("No results found with passed filters")));
+					}
 					for (auto It_Lobby : Lobbies)
 					{
 						IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(this->GetWorld());
@@ -602,7 +610,7 @@ void UEOS_Gameinstance::RequestFriendPartyJoinInfo(const FDelegateEOSGetFriendPa
 	}
 }
 
-FString UEOS_Gameinstance::GetPartyJoinToken(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId)
+FString UEOS_Gameinstance::GetPartyJoinJson(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId)
 {
 	IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(this->GetWorld());
 	IOnlinePartyPtr PartyInterface = OnlineSubsystem->GetPartyInterface();
@@ -636,6 +644,47 @@ bool UEOS_Gameinstance::UpdatePartyMetadata(const FUniqueNetIdRepl& LocalUserId,
 		return false;
 	}
 	return true;
+}
+
+void UEOS_Gameinstance::UpdatePartyAdvancedMetadata(const FDelegateUpdateAdvancedPartyMetadata & OnMetadataUpdated, const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId, const bool IsPublic, const bool IsLocked, const int32 NewCapacity)
+{
+
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(this->GetWorld());
+	IOnlineLobbyPtr LobbyInterfarce = Online::GetLobbyInterface(Subsystem);
+
+	TSharedPtr<FOnlineLobbyTransaction> Txn = LobbyInterfarce->MakeUpdateLobbyTransaction(*LocalUserId.GetUniqueNetId(), *PartyId.GetOnlinePartyId());
+
+	// To change the visibility of the lobby, set the Public value. If you
+	// don't set a value for this, it leaves the setting unchanged.
+	Txn->Public = IsPublic;
+	// To change whether players can join the lobby, set the Locked value.
+	Txn->Locked = IsLocked;
+	// To change the capacity of the lobby, set the Capacity value.
+	Txn->Capacity = NewCapacity;
+
+	this->DelegateUpdateAdvancedPartyMetadata = OnMetadataUpdated;
+	if (!LobbyInterfarce->UpdateLobby(
+		*LocalUserId.GetUniqueNetId(),
+		*PartyId.GetOnlinePartyId(),
+		*Txn,
+		FOnLobbyOperationComplete::CreateLambda([this](
+			const FOnlineError& Error,
+			const FUniqueNetId& UserId,
+			const TSharedPtr<class FOnlineLobby>& Lobby)
+			{
+				this->DelegateUpdateAdvancedPartyMetadata.ExecuteIfBound(Error.WasSuccessful(), *Error.GetErrorMessage().ToString());
+				if (Error.WasSuccessful())
+				{
+					UE_LOG(LogTamEOS, Warning, TEXT("Updated advanced Party Metadata sucessfull!"));
+				}
+				else
+				{
+					UE_LOG(LogTamEOS, Warning, TEXT("Updated advanced Party Metadata, call failed, %s"), *Error.GetErrorMessage().ToString());
+				}
+			})))
+	{
+		UE_LOG(LogTamEOS, Warning, TEXT("Updated advanced Party Metadata, call didn't start"));
+	}
 }
 
 void UEOS_Gameinstance::SendPartyInvite(FDelegateInviteMemberCompleted OnInviteCompleted, const FUniqueNetIdRepl& Sender, const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& Recipient)
