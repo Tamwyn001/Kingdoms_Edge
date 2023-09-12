@@ -669,8 +669,7 @@ void UEOS_Gameinstance::UpdatePartyAdvancedMetadata(const FDelegateUpdateAdvance
 		*Txn,
 		FOnLobbyOperationComplete::CreateLambda([this](
 			const FOnlineError& Error,
-			const FUniqueNetId& UserId,
-			const TSharedPtr<class FOnlineLobby>& Lobby)
+			const FUniqueNetId& UserId)
 			{
 				this->DelegateUpdateAdvancedPartyMetadata.ExecuteIfBound(Error.WasSuccessful(), *Error.GetErrorMessage().ToString());
 				if (Error.WasSuccessful())
