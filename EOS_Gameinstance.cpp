@@ -574,27 +574,43 @@ void UEOS_Gameinstance::RequestFriendPartyJoinInfo(const FDelegateEOSGetFriendPa
 
 				if (Error.WasSuccessful())
 				{
+					
 					UE_LOG(LogTamEOS, Warning, TEXT("Request Friend join Lobby info suceeded, found %ld results!"), Lobbies.Num());
-					if (Lobbies.Num() == 0)
-					{
-						this->DelegateEOSGetFriendPartyJoinInfo.ExecuteIfBound(false, FTamBPOnlinePartyJoinInfo(), FString(TEXT("No results found with passed filters")));
-					}
 					for (auto It_Lobby : Lobbies)
 					{
 						IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(this->GetWorld());
+						
 						IOnlinePartyPtr PartyInterface = OnlineSubsystem->GetPartyInterface();
-
 						IOnlineLobbyPtr LobbyInterface = Online::GetLobbyInterface(OnlineSubsystem);
 
 
 						FVariantData JoinTokenResult;
-						LobbyInterface->GetLobbyMetadataValue(UserId, It_Lobby.Get(), FString(TEXT("JoinInfoJson")), JoinTokenResult);
 
-						FTamBPOnlinePartyJoinInfo JoinInfo(PartyInterface->MakeJoinInfoFromJson(JoinTokenResult.ToString()));
-						this->DelegateEOSGetFriendPartyJoinInfo.ExecuteIfBound(true, JoinInfo, Error.GetErrorMessage().ToString());
+						if (!LobbyInterface->GetLobbyMetadataValue(UserId, It_Lobby.Get(), FString(TEXT("JoinInfoJson")), JoinTokenResult))
+						{
+							UE_LOG(LogTamEOS, Error, TEXT("Couldn't query Party Metadata JoinInfoJson!"));
+							this->DelegateEOSGetFriendPartyJoinInfo.ExecuteIfBound(false, FTamBPOnlinePartyJoinInfo(), TEXT("Couldn't query Party Metadata JoinInfoJson!"));
 
+							return;
+						}
+						IOnlinePartyJoinInfoConstPtr GenJoinInfo = PartyInterface->MakeJoinInfoFromJson(JoinTokenResult.ToString());
+						
+						if(GenJoinInfo.IsValid())
+						{
+							FTamBPOnlinePartyJoinInfo JoinInfo = FTamBPOnlinePartyJoinInfo(GenJoinInfo);
+							this->DelegateEOSGetFriendPartyJoinInfo.ExecuteIfBound(true, JoinInfo, TEXT(""));
+
+							return;
+						}
+						UE_LOG(LogTamEOS, Error, TEXT("Couldn't query parse Metadata JoinInfoJson!"));
+						this->DelegateEOSGetFriendPartyJoinInfo.ExecuteIfBound(false, FTamBPOnlinePartyJoinInfo(), TEXT("Couldn't parse Party Metadata JoinInfoJson!"));
 						return;
 					}
+
+					
+					//exec if results num == 0
+					this->DelegateEOSGetFriendPartyJoinInfo.ExecuteIfBound(false, FTamBPOnlinePartyJoinInfo(), FString(TEXT("No results found with passed filters")));
+					return;
 				}
 				else
 				{
