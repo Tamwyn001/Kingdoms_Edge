@@ -13,3 +13,8 @@ FString UTamwynOnlineFunctionLibrary::Conv_UniqueNetIdReplToString(const FUnique
 {
 	return InUniqueNetId.ToString();
 }
+
+FString UTamwynOnlineFunctionLibrary::Conv_FTamBPOnlinePartyIdlToString(const FTamBPOnlinePartyId& PartyId)
+{
+	return PartyId.GetOnlinePartyId()->ToString();
+}

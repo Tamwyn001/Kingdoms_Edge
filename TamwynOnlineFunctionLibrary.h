@@ -6,6 +6,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemUtils.h"
+#include "EOS_Gameinstance.h"
 
 #include "TamwynOnlineFunctionLibrary.generated.h"
 
@@ -25,4 +26,7 @@ class KINGDOMS_EDGE_API UTamwynOnlineFunctionLibrary : public UBlueprintFunction
 
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String (FUniqueNetId)", CompactNodeTitle = "->", ScriptMethod = "ToString", Category = "Utilities|String"))
 		static FString Conv_UniqueNetIdReplToString(const FUniqueNetIdRepl& InUniqueNetId);
+	UFUNCTION(BlueprintPure, meta = (DisplayName = "To String (LobbyId)", CompactNodeTitle = "->", ScriptMethod = "ToString", Category = "Utilities|String"))
+		static FString Conv_FTamBPOnlinePartyIdlToString(const FTamBPOnlinePartyId& PartyId);
+
 };

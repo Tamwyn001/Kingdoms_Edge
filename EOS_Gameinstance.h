@@ -1,6 +1,4 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-//wasnt able to use FBPUniqueNetId and FBPUserOnlineAccount from online session. made copies and modified
-//name to FTamBPUserOnlineAccount and FUniqueNetIdRepl, all right goes to
 #pragma once
 
 #include "CoreMinimal.h"
@@ -134,8 +132,33 @@ private:
 public:
 	TSharedPtr<const FOnlinePartyId> OnlinePartyId;
 	const FOnlinePartyId* OnlinePartyIdPtr;
+	FTamBPOnlinePartyId()
+	{
+		bUseDirectPointer = false;
+		OnlinePartyIdPtr = nullptr;
+	}
+
+	FTamBPOnlinePartyId(const TSharedRef<const FOnlinePartyId>& ID)
+	{
+		SetOnlinePartyId(ID);
+	}
+	FTamBPOnlinePartyId(const TSharedPtr<const FOnlinePartyId>& ID)
+	{
+		SetOnlinePartyId(ID);
+	}
+	FTamBPOnlinePartyId(const FOnlinePartyId* ID)
+	{
+		SetOnlinePartyId(ID);
+	}
 
 	void SetOnlinePartyId(const TSharedPtr<const FOnlinePartyId>& ID)
+	{
+		bUseDirectPointer = false;
+		OnlinePartyIdPtr = nullptr;
+		OnlinePartyId = ID;
+	}
+
+	void SetOnlinePartyId(const TSharedRef<const FOnlinePartyId>& ID)
 	{
 		bUseDirectPointer = false;
 		OnlinePartyIdPtr = nullptr;
@@ -189,11 +212,7 @@ public:
 		return !(IsValid() && Other.IsValid() && (*GetOnlinePartyId() == *Other.GetOnlinePartyId()));
 	}
 
-	FTamBPOnlinePartyId()
-	{
-		bUseDirectPointer = false;
-		OnlinePartyIdPtr = nullptr;
-	}
+
 };
 
 USTRUCT(BlueprintType)
@@ -401,6 +420,23 @@ enum class ETamBPVariantDataType : uint8
 };
 
 USTRUCT(BlueprintType)
+struct FTamMetadataQuery
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+		ETamBPVariantDataType Type;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+		FString Key;
+	FTamMetadataQuery(){}
+	FTamMetadataQuery(const ETamBPVariantDataType& InType, const FString InKey)
+	{
+		Type = InType;
+		Key = InKey;
+	}
+};
+
+USTRUCT(BlueprintType)
 struct 	FTamBPVariantData {
 	GENERATED_USTRUCT_BODY()
 
@@ -418,19 +454,40 @@ public:
 	FTamBPVariantData(){}
 	FTamBPVariantData(const bool InBool) 
 	{
-		AsBool = InBool;
+		SetTypeBool(InBool);
 	}
 	FTamBPVariantData(const int InInt)
 	{
-		AsInt = InInt;
+		SetTypeInt(InInt);
 	}
 	FTamBPVariantData(const float InFloat)
 	{
-		AsFloat = InFloat;
+		SetTypeFloat(InFloat);
 	}
 	FTamBPVariantData(const FString InString)
 	{
+		SetTypeFString(InString);
+	}
+
+	void SetTypeBool(const bool InBool)
+	{
+		AsBool = InBool;
+		Type = ETamBPVariantDataType::Boolean;
+	}
+	void SetTypeInt(const int32 InInt)
+	{
+		AsInt = InInt;
+		Type = ETamBPVariantDataType::Int32;
+	}
+	void SetTypeFloat(const float InFloat)
+	{
+		AsFloat = InFloat;
+		Type = ETamBPVariantDataType::Float;
+	}
+	void SetTypeFString(const FString InString)
+	{
 		AsString = InString;
+		Type = ETamBPVariantDataType::FString;
 	}
 };
 
@@ -895,6 +952,10 @@ DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateQueryUsersInfo,
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateEOSGetFriendPartyJoinInfo, 
 	const bool, WasSucessfull, const FTamBPOnlinePartyJoinInfo&, JoinInfo, const FString, ErrorString);
 
+DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateEOSQueryPartyMetadata,
+	const bool, WasSucessfull, const TArray<FTamBPPartyMetadata>& , Metadata, const FString, ErrorString);
+
+
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateLeavePartyCompleted,
 	const FUniqueNetIdRepl &, LocalUserId, const FTamBPOnlinePartyId &, PartyId,
 	const ETamBPLeavePartyCompletionResult, Result);
@@ -1017,61 +1078,95 @@ public:
 		FDelegateEOSGetFriendPartyJoinInfo DelegateEOSGetFriendPartyJoinInfo;
 	UPROPERTY()
 		FDelegateUpdateAdvancedPartyMetadata DelegateUpdateAdvancedPartyMetadata;
+	UPROPERTY()
+		FDelegateEOSQueryPartyMetadata DelegateEOSQueryPartyMetadata;
 	//--- Blueprint Exposed Functions ---
 
 //_IDENTITY_
-	/**
-	* Logins a given player to EOS according to the setted up AuthGraph. See project settings.
-	*
-	* @param The delegate called whene finished.
-	* @param ID The ID of the player if on console.
-	*/
+
+/**
+* Login a given player to EOS according to the setted up AuthGraph. See project settings.
+* @param OnLoginCompleted The delegate to fire after the completion.
+* @param LocalUserNum The local player number. Same as the getPlayerController().
+*/
 	UFUNCTION(BlueprintCallable,DisplayName="Login Player", Category = "Tamwyn's EOS|Connection")
 	void LoginPlayer(
 		const FDelegateLoginEOSSubsystem & OnLoginCompleted,
 		int32 LocalUserNum);
 
-	/**
-	* Logout a given player to EOS according to the setted up AuthGraph. See project settings.
-	*
-	* @param The delegate called whene finished.
-	* @param ID The ID of the player if on console.
-	*/
+/**
+* Logout a given player to EOS according to the setted up AuthGraph. See project settings.
+* @param OnLoginCompleted The delegate to fire after the completion.
+* @param LocalUserNum The local player number. Same as the getPlayerController().
+*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Logout Player", Category = "Tamwyn's EOS|Connection")
 		void LogoutPlayer(
 			const FDelegateLogoutEOSSubsystem& OnLogoutCompleted,
 			int32 LocalUserNum);
+	/**
+* Is the player logged to the online subsystem.
+* @param LocalUserNum The local player number. Same as the getPlayerController().
+*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Is Player Logged in", Category = "Tamwyn's EOS|Connection")
 		bool IsPlayerLoggedIn(int32 LocalUserNum);
-
+	/**
+	* Get the local player display name. You may use get user account instead.
+	* @param LocalUserNum The local player number. Same as the getPlayerController().
+	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Local Player Nickname", Category = "Tamwyn's EOS|Player Infos")
 		FString GetPlayerNickname(int32 LocalUserNum);
 	/**
-	Get th Unique Net Id of the local signed in to EOS user.
+	* Get the local playerunique net id. This is very useful!
+	* @param LocalUserNum The local player number. Same as the getPlayerController().
+	* @param PlayerUniqueNetId The UniqueNetId associated with the player.
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Local Player UniqueNetId", Category = "Tamwyn's EOS|Player Infos")
 		void GetPlayerUniqueNetId(int32 LocalUserNum, FUniqueNetIdRepl& PlayerUniqueNetId);
 
+	/**
+	* Get the account of a player.
+	* @param UniqueNetID The UniqueNetId associated with the player.
+	* @param UserAccount The account of the player.
+	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Player Account", Category = "Tamwyn's EOS|Player Infos")
-		void GetPlayerAccount(const FUniqueNetIdRepl& UniqueNetID, FTamBPUserOnlineAccount& UserAccount);
+		bool GetPlayerAccount(const FUniqueNetIdRepl& UniqueNetID, FTamBPUserOnlineAccount& UserAccount);
 
+	/**
+	* Get the autheifucation value associated with a key.
+	* @param Key The key to get the value of.
+	* @param TargetAccount The account of the player.
+	* @param KeyResult The value of the key.
+	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Auth Attribute", Category = "Tamwyn's EOS|Player Infos")
-		FString GetAuthAttribute(const FTamBPUserOnlineAccount & TargetAccount, FString Key, bool& Found);
-
+		bool GetAuthAttribute(const FTamBPUserOnlineAccount & TargetAccount, const FString Key, FString& KeyResult);
+	/**
+	* Get the UniqueNetId of a player from his PlayerController. Caution, Player controllor are relative to each game "instance". The Player controller 0 is always the local, so it would correspond to the number 1 for an other player. Prefer GetUniqueNetIdFromPlayerState as Playerstate are the same object reference between the game "instances".
+	* @param PlayerController The PlayerController of the player to get the UniqueNetId of.
+	* @param UniqueNetID The UniqueNetID of the player.
+	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Player UniqueNetId from Player Controller", Category = "Tamwyn's EOS|Player Infos")
 		void GetPlayerUniqueIdPlayerController(const APlayerController* PlayerController, FUniqueNetIdRepl& UniqueNetID);
-
+	/**
+	* Get the UniqueNetId of a player from his PlayerState. Playerstate are the same object reference between the game "instances".
+	* @param PlayerState The PlayerState of the player to get the UniqueNetId of.
+	* @param UniqueNetID The UniqueNetID of the player.
+	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Player UniqueNetId from Player State", Category = "Tamwyn's EOS|Player Infos")
 		void GetPlayerUniqueIdPlayerState(const APlayerState* PlayerState, FUniqueNetIdRepl& UniqueNetID);
 
-	UFUNCTION(BlueprintCallable, DisplayName = "Get Member UniqueNetId", Category = "Tamwyn's EOS|Player Infos")
-		void GetMemberUniqueId(const FTamBPOnlinePartyMember& PartyMember, FUniqueNetIdRepl& UniqueNetID);
-
+	/**
+	* Cach the UserInfo of an array of player from his PlayerState.This is used to later call GetUserInfo().
+	* @param OnInfoQueried The delegate fired after the completion.
+	* @param UniqueNetIdsToQuery The UniqueNetIDs to get the infos of.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Query Users Info", Category = "Tamwyn's EOS|Player Infos")
 		void QueryUsersInfos(const FDelegateQueryUsersInfo& OnInfoQueried, const TArray< FUniqueNetIdRepl>& UniqueNetIdsToQuery);
 
-	/*
-	*Used to retrieve all cached infos about a player unique net id
+	/**
+	* Retrieve the cached UserInfo of Player. QueryUsersInfos() must at least be called once before to cache the datas.
+	* @param LocalUserNum The lcoacul user number.
+	* @param UniqueNetID The UniqueNetID to get the infos of.
+	* @param UserInfo The found user infos.
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintCallable, DisplayName = "Get User Info", Category = "Tamwyn's EOS|Player Infos")
 		void GetUserInfo(const int32 LocalUserNum,const FUniqueNetIdRepl& UniqueNetID, FTamBPUserInfos& UserInfo);
@@ -1084,81 +1179,170 @@ public:
 //notes:When a player joins a party via the overlay, the party system will automatically leave the current presence party 
 //	(if there is one) and join the new party.
 
+	/**
+	* Creates a party on EOS
+	* @param OnPartyCreated The Degelgate after completion.
+	* @param MaxMembers Total number that can join the party.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Create Party", Category = "Tamwyn's EOS|Party")
 		void CreateParty(const FDelegateCreatePartyCompleted& OnPartyCreated, int32 MaxMembers);
+
+	/**
+	* Kicks a member of the current EOS party.
+	* @param OnMemberKicked The Degelgate after completion.
+	* @param UserIdLeader The leader UniqueNetId.
+	* @param PartyId The joined party.
+	* @param MemberToKick The player to kick.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Kick Member", Category = "Tamwyn's EOS|Party")
 		void KickMember(const FDelegateKickMemberCompleted & OnMemberKicked,const FUniqueNetIdRepl& UserIdLeader,
-			const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& MemberToKick);
+			const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& UserToKick);
+	/**
+	* Promote a member of the current EOS party.
+	* @param OnMemberPromoted The Degelgate after completion.
+	* @param UserIdLeader The leader UniqueNetId.
+	* @param PartyId The joined party.
+	* @param UserIdToPromote The player to promote.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Promote Member", Category = "Tamwyn's EOS|Party")
-		void PromoteMember(const FDelegatePromoteMemberCompleted & OnMemberPromoted,const FUniqueNetIdRepl&  UserIdLeader, const FTamBPOnlinePartyId &PartyId, const FUniqueNetIdRepl &UserIdToPromote);
+		void PromoteMember(const FDelegatePromoteMemberCompleted & OnMemberPromoted,const FUniqueNetIdRepl& UserIdLeader, const FTamBPOnlinePartyId &PartyId, const FUniqueNetIdRepl &UserIdToPromote);
+	/**
+	* Local player leaves the current EOS party.
+	* @param OnPartyLeaved The Degelgate after completion.
+	* @param LocalUserNum The local user index.
+	* @param PartyId The joined party.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Leave Party", Category = "Tamwyn's EOS|Party")
 		void LeaveParty(const FDelegateLeavePartyCompleted & OnPartyLeaved, int32 LocalUserNum, const FTamBPOnlinePartyId& PartyId);
+
+	/**
+	* Get the joined parties of a local registered player.
+	* @param LocalUserId The local user index.
+	* @param OutPartyIdArray The found joined parties.
+	* @return Was the search sucessfull?
+	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Joined Parties", Category = "Tamwyn's EOS|Party")
 		bool GetJoinedParties(const FUniqueNetIdRepl &LocalUserId, TArray<FTamBPOnlinePartyId>& OutPartyIdArray);
+	/**
+	* Get all the members of a joined party.
+	* @param LocalUserNum The local user index.
+	* @param PartyId The targeted party id.
+	* @param OutMembers The found member of the joined party.
+	* @return Was the search sucessfull?
+	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Get Party Members", Category = "Tamwyn's EOS|Party")
 		bool GetPartyMembers(int32 LocalUserNum, const FTamBPOnlinePartyId& PartyId, TArray<FTamBPOnlinePartyMember>& OutMembers);
+	/**
+	* Get the UniqueNetId of a PartyMember.
+	* @param PartyMember The PartyMember to get the UniqueNetId of.
+	* @param UniqueNetID The UniqueNetID of the player.
+	*/
+	UFUNCTION(BlueprintCallable, DisplayName = "Get Member UniqueNetId", Category = "Tamwyn's EOS|Party")
+		void GetMemberUniqueId(const FTamBPOnlinePartyMember& PartyMember, FUniqueNetIdRepl& UniqueNetID);
+
 	
 	/**
 	* Invite a member to the party, the callback is sender side.
-	*
-	* @param The delegate called whene finished.
-	* @param The sender.
-	* @param the party to invite to.
-	* @param the target user.
+	* @param OnInviteCompleted The delegate called whene finished.
+	* @param Sender The sender UniqueNetId.
+	* @param PartyId The party to invite to. The sender shoulb be present in the party.
+	* @param Recipient The UserNetId of target user.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Send Party Invite", Category = "Tamwyn's EOS|Party")
 		void SendPartyInvite(const FDelegateInviteMemberCompleted OnInviteCompleted, const FUniqueNetIdRepl& Sender, const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& Recipient);
 	
+	/*Cancel a send invitation to a party, NOT SUPPORTED atm!*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Cancel Party Invite", Category = "Tamwyn's EOS|Party")
 		void CancelPartyInvite(const FDelegateCancelInviteMemberCompleted OnCancelCompleted, const FUniqueNetIdRepl& Sender, const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& Recipient);
 
-	UFUNCTION(BlueprintCallable,BlueprintPure, DisplayName = "Get Pending Invites", Category = "Tamwyn's EOS|Party")
-		bool GetPlayerPendingInvites(const FUniqueNetIdRepl& UserId, TArray<FTamBPOnlinePartyJoinInfo>& OutInviteList);
 	/**
-	Bind an event taht executes each time the invite array changes. Useful to display lists of invites.
-	@param The user iD
+	* Reject an invitation to a party. Removes the party from pending invites.
+	* @param UserRejecting The UniqueNetId of the user rejecting the request.
+	* @param UserInviting The UniqueNetId of the user sending the request. You can get it from the invitation infos.
+	* @return Did the call succeeded?
+	*/
+	UFUNCTION(BlueprintCallable, DisplayName = "Reject Party Invite", Category = "Tamwyn's EOS|Party")
+		bool RejectPartyInvite(const FUniqueNetIdRepl& UserRejecting, const FUniqueNetIdRepl& UserInviting);
+
+	/**
+	* Get the list of parties, the player has been invited to.
+	* @param UserId The UniqueNetId of the local player querying.
+	* @param OutInviteList The invitations search results.
+	* @return Did the call succeeded?
+	*/
+	UFUNCTION(BlueprintCallable,BlueprintPure, DisplayName = "Get Player Pending Invites", Category = "Tamwyn's EOS|Party")
+		bool GetPlayerPendingInvites(const FUniqueNetIdRepl& PlayerToQueryFor, TArray<FTamBPOnlinePartyJoinInfo>& OutInviteList);
+	/**
+	* Get notified each time the invite array changes. Useful to display lists of invites. This is reset whene disconnecting.
+	* @param OnChanged The event to fire each time pending invite array is changed.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Listen for Parties Invites Changed", Category = "Tamwyn's EOS|Party")
 		void ListenForChangePartiesInvite(const FDelegateOnPartyInvitesChanged & OnChanged);
 	/**
-	 Bind an event taht executes each time the user receives an invite. Useful to display pop-ups.
-	 @param The user iD
+	* Bind an event taht executes each time the user receives an invite. Useful to display pop-ups.
+	* @param OnReceived The event to fire each time invite is received.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Listen for Parties Invites Received", Category = "Tamwyn's EOS|Party")
 		void ListenForReceivePartiesInvite(const FDelegateOnPartyInvitesReceived & OnReceived);
 
+	/**
+	* Joins the party get through a join info.
+	* @param OnJoined The delegate fired on completion.
+	* @param UserId The local user that will to join.
+	* @param PartyToJoin The join info to a party. Get with Query Join info or join invite received.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Join Party", Category = "Tamwyn's EOS|Party")
 		void JoinParty(const FDelegateJoinPartyCompleted & OnJoined, const FUniqueNetIdRepl& UserId, const FTamBPOnlinePartyJoinInfo& PartyToJoin);
 	/**
-	Call on leader to listen to leaders relevant event. E.g join requests
-	@param Delegate
+	* Call on leader to listen to leaders relevant event. E.g join requests
+	* @param JoinRequestReceived The delegate fired each time a join request is received. join request are not supported, player need to be invited or need to query the join info on its side.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Setup Leader Listens", Category = "Tamwyn's EOS|Party")
 		void SetupLeaderListens(const FDelegateOnPartyJoinRequestReceived & JoinRequestReceived);
 	/**
-	* Call on leader to listen to members relevant event. E.g member joins, leaves or is promoted
-	* @param Delegate
-	* @param Delegate
-	* @param Delegate
+	* Call on members (incl. Leader) to listen to members relevant events. E.g member joins, leaves or is promoted
+	* @param OnPartyMemberJoined Fired each time a new member joins a party.
+	* @param OnPartyMemberExited Fired each time a memeber exits a joined party.
+	* @param OnPartyMemberPromoted Fired each time a member of a joined party is promoted.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Setup Members Listens", Category = "Tamwyn's EOS|Party")
 		void SetupMembersListens(const FDelegateOnPartyMemberJoined & OnPartyMemberJoined, const FDelegateOnPartyMemberExited & OnPartyMemberExited, const FDelegateOnPartyMemberPromoted & OnPartyMemberPromoted);
-	
+	/**
+	* Is the target member the leader of the joined party?
+	* @param LocalUserId The user that makes the request.
+	* @param PartyId The PartyId of the joined party to ask to.
+	* @param MemberUniqueId The member to target look if leader.
+	* @return Is this target member the leader?
+	*/
 	UFUNCTION(BlueprintCallable, BlueprintPure, DisplayName = "Is Party Leader", Category = "Tamwyn's EOS|Party")
 		bool IsMemberPartyLeader(const FUniqueNetIdRepl& LocalUserId,const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& MemberUniqueId);
 	
+	/**
+	* Get the party Leader of the current joined party.
+	* @param LocalUserId The user that makes the request.
+	* @param PartyId The PartyId of the joined party to ask to.
+	* @param The found leader UniqueNetId.
+	* @return Was the member found?
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Get Leader", Category = "Tamwyn's EOS|Party")
-		FUniqueNetIdRepl GetPartyLeader(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId);
+		bool GetPartyLeader(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId, FUniqueNetIdRepl& LeaderUniqueNetId);
 
 	/**
-	* Find join info to party with specific save. Scenario is to join a lobby with the friend we played last time
-	* @param Requesting
-	* @param Friend
-	* @param Save Guid to search to
+	* Find join info to party with specific metadata. Scenario is to join a lobby with the friend we played last time. If more than one result is wished, the delegate can be fired multiple times.
+	* @param OnPartyFound The delegate fired on completion.
+	* @param PlayerRequesting The local player that makes the request.
+	* @param SearchFilters An array of filters for the search accorss EOS existing parties.
+	* @param ResultsLimit A limit the the number of results.
 	*/
-	UFUNCTION(BlueprintCallable, DisplayName = "Request Friend Party Join Info", Category = "Tamwyn's EOS|Party")
-		void RequestFriendPartyJoinInfo(const FDelegateEOSGetFriendPartyJoinInfo& OnPartyFound, const FUniqueNetIdRepl& PlayerRequesting, const FUniqueNetIdRepl& Recipient, const TArray<FTamBPPartyMetadata>& SearchFilters, const int ResultsLimit);
-
+	UFUNCTION(BlueprintCallable, DisplayName = "Request JoinInfo to Party", Category = "Tamwyn's EOS|Party")
+		void RequestJoinInfoToParty(const FDelegateEOSGetFriendPartyJoinInfo& OnPartyFound, const FUniqueNetIdRepl& PlayerRequesting, const TArray<FTamBPPartyMetadata>& SearchFilters, const int ResultsLimit);
+	/**
+	* Find join info to party with specific metadata. Scenario is to join a lobby with the friend we played last time. If more than one result is wished, the delegate can be fired multiple times.
+	* @param LocalUserId The UniqueNetId of the local user making the changes.
+	* @param PartyId The party to change the metadata of.
+	* @param MetadataToUpload The new metadata, overwriten.
+	* @return Did the call start?
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Metadata", Category = "Tamwyn's EOS|Party")
 		bool UpdatePartyMetadata(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId, const TArray<FTamBPPartyMetadata>& MetadataToUpload);
 	
@@ -1167,9 +1351,14 @@ public:
 
 	UFUNCTION(BlueprintPure, DisplayName = "Get Party Join Json", Category = "Tamwyn's EOS|Party")
 		FString GetPartyJoinJson(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId);
+	UFUNCTION(BlueprintPure, DisplayName = "Get PartyId from JoinInfo", Category = "Tamwyn's EOS|Party")
+		void GetPartyIdFromJoinInfo(const FUniqueNetIdRepl& PlayerId, const FTamBPOnlinePartyJoinInfo& Joininfo, FTamBPOnlinePartyId& OutPartyId);
+	UFUNCTION(BlueprintCallable, DisplayName = "Get External Party Metadata", Category = "Tamwyn's EOS|Party")
+		void GetExternalPartyMetadata(const FDelegateEOSQueryPartyMetadata& OnMetadataFetched, const FUniqueNetIdRepl& PlayerId, const FTamBPOnlinePartyId& PartyId, const TArray<FTamMetadataQuery>& InQueryAttributes);
+	UFUNCTION(BlueprintCallable, DisplayName = "Get Joined Party Metadata", Category = "Tamwyn's EOS|Party")
+		bool GetJoinedPartyMetadata(const FUniqueNetIdRepl& PlayerId, const FTamBPOnlinePartyId& PartyId, const TArray<FTamMetadataQuery>& QueryAttributes, TArray<FTamBPPartyMetadata>& OutMetadatas);
 
-
-
+	
 	//_SESSION_	
 	/**
 	Create a session on EOS, in wich players from differents machines can play together
@@ -1456,5 +1645,6 @@ public:
 	TSharedRef<FPartyConfiguration> PartyConfig = MakeShared<FPartyConfiguration>();
 	TSharedRef<FOnlineSessionSettings> SessionSettings = MakeShared<FOnlineSessionSettings>();
 	TSharedRef<FOnlineSessionSearch> SessionSearch = MakeShared<FOnlineSessionSearch>();
+	TArray<FTamMetadataQuery> QueryAttributes;
 };
 	
