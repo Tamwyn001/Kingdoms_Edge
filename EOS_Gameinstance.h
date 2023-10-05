@@ -596,6 +596,10 @@ public:
 		Nickname = FriendInfo.Pin()->GetDisplayName();
 		UniqueNetId = FriendInfo.Pin()->GetUserId();
 	}
+	bool IsValid() const
+	{
+		return FriendInfo.IsValid();
+	}
 };
 
 UENUM(BlueprintType)
@@ -1346,104 +1350,150 @@ public:
 	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Metadata", Category = "Tamwyn's EOS|Party")
 		bool UpdatePartyMetadata(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId, const TArray<FTamBPPartyMetadata>& MetadataToUpload);
 	
-	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Advanced Metadata", Category = "Tamwyn's EOS|Party")
+	/**
+	* Updates the visibility of the party and its capacity.
+	* @param OnMetadataUpdated Delegate fired on completion
+	* @param LocalUserId The local user making this request. Should be the leader.
+	* @param PartyId The party to change the metadata of.
+	* @param IsPublic Can other peoples find this party?
+	* @param IsLocked Can new member join?
+	* @param NewCapacity The ne total member of this party.
+	*/
+	/*@todo: optional datas*/
+	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Visibility Metadata", Category = "Tamwyn's EOS|Party")
 		void UpdatePartyAdvancedMetadata(const FDelegateUpdateAdvancedPartyMetadata& OnMetadataUpdated, const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId, const bool IsPublic, const bool IsLocked, const int32 NewCapacity);
-
+	/**
+	* Get the join info of a party as a JSON. Scenario is to upload the join info as a metadata, so that other player can authomaticaly join the session after reading the metadatas.
+	* @param OnMetadataUpdated Delegate fired on completion
+	* @param LocalUserId The local user making this request.
+	* @param PartyId The party to get the join info from.
+	* @return The joinInfo as a JSON format.
+	*/
 	UFUNCTION(BlueprintPure, DisplayName = "Get Party Join Json", Category = "Tamwyn's EOS|Party")
 		FString GetPartyJoinJson(const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId);
+
+	/**
+	* Returns the PartyID of a party from its JoinInfo.
+	* @param PlayerId The local user making this request.
+	* @param Joininfo The JoinInfo to get the info from
+	* @param OutPartyId The associated Party Id
+	*/
 	UFUNCTION(BlueprintPure, DisplayName = "Get PartyId from JoinInfo", Category = "Tamwyn's EOS|Party")
 		void GetPartyIdFromJoinInfo(const FUniqueNetIdRepl& PlayerId, const FTamBPOnlinePartyJoinInfo& Joininfo, FTamBPOnlinePartyId& OutPartyId);
+
+	/**
+	* Queries the wished metadata of an exisiting EOS Party.
+	* @param OnMetadataFetched Fired on completion.
+	* @param PlayerId The player making this request.
+	* @param PartyId The PartyId to get the metadata from.
+	* @param InQueryAttributes The attributes that needed to be query.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Get External Party Metadata", Category = "Tamwyn's EOS|Party")
 		void GetExternalPartyMetadata(const FDelegateEOSQueryPartyMetadata& OnMetadataFetched, const FUniqueNetIdRepl& PlayerId, const FTamBPOnlinePartyId& PartyId, const TArray<FTamMetadataQuery>& InQueryAttributes);
+	
+	/**
+	* Get the wished metadata of an exisiting EOS Party. These informations are cached, i.e. instanteneaous accessible.
+	* @param OnMetadataFetched Fired on completion.
+	* @param PlayerId The player making this request.
+	* @param PartyId The PartyId to get the metadata from.
+	* @param QueryAttributes The attributes that needed to be query.
+	* @param OutMetadatas The found values for the given Metadata keys.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Get Joined Party Metadata", Category = "Tamwyn's EOS|Party")
 		bool GetJoinedPartyMetadata(const FUniqueNetIdRepl& PlayerId, const FTamBPOnlinePartyId& PartyId, const TArray<FTamMetadataQuery>& QueryAttributes, TArray<FTamBPPartyMetadata>& OutMetadatas);
 
 	
 	//_SESSION_	
 	/**
-	Create a session on EOS, in wich players from differents machines can play together
-	@param Delegate
-	@param The local player id -> the next leader
-	@param The session Name, may be relevant for some sessions events
-	@param Max public connections
-	@param Max private connections
+	* Create a session on EOS, in wich players from differents machines can play together
+	* @param OnSessionCreated Delegate fired on completion.
+	* @param HostingPlayerId The player id hosting this session. Should be a local user.
+	* @param SessionName The session Name, may be relevant for some sessions events.
+	* @param bIsDedicated Should use the dedicated server layer?
+	* @param MaxNumOfPublicConnection The total number of public players.
+	* @param MaxNumOfPrivateConnection The total number of private players.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Create EOS Session", Category = "Tamwyn's EOS|Session")
 		void CreateEOSSession(const FDelegateEOSSessionCreated & OnSessionCreated, const FUniqueNetIdRepl& HostingPlayerId, const FName SessionName, const bool bIsDedicated, const int32 MaxNumOfPublicConnection, const int32 MaxNumOfPrivateConnection);
 
 	/**
-	Destroy a given session. When your server has finished hosting a game, or when the game client disconnects from a server early, you need to destroy the local session.
-	@param Delegate
-	@param The session Name is the local name of the session for the client or server. It should be the value you specified when creating or joining the session (depending on which you called).
+	* Destroy a given session. When your server has finished hosting a game, or when the game client disconnects from a server early, you need to destroy the local session.
+	* @param OnSessionDestroyed Delegate fired on completion.
+	* @param SessionName The session Name is the local name of the session for the client or server. It should be the value you specified when creating or joining the session (depending on which you called).
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Destroy EOS Session", Category = "Tamwyn's EOS|Session")
 		void DestroyEOSSession(const FDelegateEOSSessionDestroyed & OnSessionDestroyed, const FName SessionName);
 
 	/**
-	* Find a session to join
-	@param Delegate
-	@param The max number of search results
+	* Find an EOS session to join.
+	* @param OnSessionsFound Delegate fired on completion.
+	* @param MaxResult The max number of search results.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Search EOS Session", Category = "Tamwyn's EOS|Session")
 		void SearchEOSSession(const FDelegateEOSSessionFound & OnSessionsFound, int32 MaxResult);
 
 	/**
-	Find a session of a given friend
-	@param Delegate
-	@param The max number of search results
+	* Finds a session of a given friend.
+	* @param OnSessionsFound Delegate fired on completion.
+	* @param LocalUserNum The max number of search results.
+	* @param FriendUniqueNetId The friend unique net id.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Search Friend's EOS Session", Category = "Tamwyn's EOS|Session")
 		void SearchFriendEOSSession(const FDelegateEOSSessionFound & OnSessionsFound, const int32 LocalUserNum, const FUniqueNetIdRepl& FriendUniqueNetId);
 
 	/**
-	Cancel session search
-	@param Delegate
+	* Cancel an EOS session search.
+	* @param OnSearchCanceled Delegate fired on completion.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Cancel Search EOS Session", Category = "Tamwyn's EOS|Session")
 		void CancelSearchEOSSession(const FDelegateCancelSearchEOSSession & OnSearchCanceled);
 
 	/**
-	Join a given session
-	@param Delegate
-	@param The sessions search infos: get from " Seach EOS Session" .
+	* Join a given session
+	* @param OnSessionsJoined Delegate fired on completion.
+	* @param SessionSearchInfo The sessions search infos: accessible from "Seach EOS Session" .
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Join EOS Session", Category = "Tamwyn's EOS|Session")
 		void JoinEOSSession(const FDelegateEOSSessionJoined & OnSessionsJoined, const FTamBPSessionSearchResultInfos & SessionSearchInfo);
 
 	/**
-	Find a session given by a sessionID, for exemple through presence
-	@param Delegate
-	@param The sessions search infos: get from " Seach EOS Session" .
+	* Find an advertised session given by a sessionID, for exemple through friend presence. Presence is cached so session infos too.
+	* @param OnSessionsFound Delegate fired on completion.
+	* @paramSearchingUser The user making this request. Should be the local user.
+	* @param SessionId The sessonId of the friend.
+	* @param FriendId The friend from wich we want to get the sesson from.
 	*/
-	UFUNCTION(BlueprintCallable, DisplayName = "Get EOS Session from Session ID", Category = "Tamwyn's EOS|Session")
+	UFUNCTION(BlueprintCallable, DisplayName = "Find Advertised EOS Session from Session ID", Category = "Tamwyn's EOS|Session")
 		void FindEOSSessionFromSessionID(const FDelegateFindEOSSessionBySessionId & OnSessionsFound, const FUniqueNetIdRepl& SearchingUser, const FTamBPOnlineSessionId& SessionId, const FTamBPOnlineFriend& FriendId);
 	/**
-	Get the current state of the passed ssession.
-	@param Local name of the session. Should match name given in create seesion.
+	* Get the current state of the passed ssession.
+	* @param SessionName Local name of the session. Should match name given in create seesion.
+	* @return The state of the session.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Get EOS Session State", Category = "Tamwyn's EOS|Session")
 		ETamBPOnlineSessionState GetEOSSessionState(const FName SessionName);
 
 	/**
-	Refresh an EOS session to apply modifications.
-	@param Delegate
-	@param Local name of the session. Should match name given in create seesion.
+	* Refresh an EOS session to apply modifications.
+	* @param OnSessionUpdated Delegate fired on completion.
+	* @param SessionName Local name of the session. Should match name given in create seesion.
+	* @param bSubmitToEOS Should we send the infos to EOS servers?
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Refresh EOS Session", Category = "Tamwyn's EOS|Session")
-		void UpdateEOSSession(const FDelegateUpdateEOSSession & OnSessionUpdated, const FName SessionName,const bool bSubmitToEOS);
+		void UpdateEOSSession(const FDelegateUpdateEOSSession & OnSessionUpdated, const FName SessionName, const bool bSubmitToEOS);
 
 	/**
-	Marks an EOS Session as InProgress instead of Lobbie or Pending. An EOS session must be created before.
-	@param Delegate
-	@param Local name of the session. Should match name given in create seesion.
+	* Marks an EOS Session as InProgress instead of Lobbie or Pending. An EOS session must be created before.
+	* @param OnSessionStarted Delegate fired on completion.
+	* @param SessionName Local name of the session. Should match name given in create seesion.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Start EOS Session", Category = "Tamwyn's EOS|Session")
 		void StartEOSSession(const FDelegateStartEOSSession & OnSessionStarted, const FName SessionName);
 
 	/**
 	* Get the settings of the given session.
-	* @param Session Name
-	* @param Output Settings
+	* @param SessionName Session Name. Should match name given in create seesion.
+	* @param SessionSettings The settings.
 	*/
 	UFUNCTION(BlueprintPure, DisplayName = "Get EOS Session Settings", Category = "Tamwyn's EOS|Session")
 		void GetEOSSessionSettings(const FName SessionName, FTamBPSessionSettings& SessionSettings);
@@ -1451,49 +1501,53 @@ public:
 
 
 	/**
-	* Read the EOS Friend list, need to be called before all friend call!
-
+	* Read the downloaded (auto on login) EOS Friend list, need to be called before all friend call!
+	* @param OnReadCompleted Delegate fired on completion.
+	* @param LocalUserNum The local player number.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Read EOS Friend List", Category = "Tamwyn's EOS|Friends")
 		void ReadEOSFriendList(const FDelegateReadEOSFriendList & OnReadCompleted, const int32 LocalUserNum);
 	
 	/**
 	* Read the EOS cached Friend list, need to call "Read EOS Friend List" once before all friend call!
-
+	* @param LocalUserNum The local player number.
+	* @param Friends The found cached friends.
+	* @return Was this call a success?
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Get Cached EOS Friend List", Category = "Tamwyn's EOS|Friends")
-		void GetEOSFriendList(const int32 LocalUserNum, bool& bWasSuccessfull, TArray<FTamBPOnlineFriend> & Friends);
+		bool GetEOSFriendList(const int32 LocalUserNum, TArray<FTamBPOnlineFriend> & Friends);
 
 	/**
-	* Retrive if the supposed friend user linked to the UniqueNetId is a friend
+	* Retrive if the supposed friend user linked to the UniqueNetId is a friend.
+	* @param LocalUserNum The local player number.
+	* @param FriendUserID The user ID of the supposed firend.
+	* @param Friend The found friend.
+	* @return Was this call a success?
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Is an EOS Friend", Category = "Tamwyn's EOS|Friends")
-		void GetEOSFriend(const int32 LocalUserNum,const FUniqueNetIdRepl & FriendUserID, bool& bWasSuccesfull, FTamBPOnlineFriend& Friend);
+		bool GetEOSFriend(const int32 LocalUserNum, const FUniqueNetIdRepl & FriendUserID, FTamBPOnlineFriend& Friend);
 
 	/**
-	* Listen to changes in the friend list, you can call get firend list on the delegate
+	* Listen to changes in the friend list, you can call get firend list on the delegate.
+	* @param OnFriendListChanged Fired each time the friend list changes.
+	* @param LocalUserNum The local player number.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Listen To EOS Friends Changes", Category = "Tamwyn's EOS|Friends")
-		void ListenToFriendsChanges(const FDelegateFriendListChanged&  OnFriendListChanged, int32 LocalUserNum);
+		void ListenToFriendsChanges(const FDelegateFriendListChanged& OnFriendListChanged, const int32 LocalUserNum);
 
 	/**
-	* Get the UniqueNetId of a friend, you can then call GetUserAccount to AccessInfos
-
-	*/
-	UFUNCTION(BlueprintCallable, DisplayName = "Get EOS Friend Unique Net Id", Category = "Tamwyn's EOS|Friends")
-		void GetEOSFriendUniqueNetId(const FTamBPOnlineFriend & Friend,  FUniqueNetIdRepl& UniqueNetID);
-	/**
-	* Need to call QueryPresence if EpicGames is online subsystem before call presence!
-
+	* Need to call QueryPresence if EpicGames is online subsystem before call in presence context! The presence will then be cached.
+	* @param OnPresenceTaskComplete Delegate fired on completion.
+	* @param LocalUserNum The local player number.
+	* @param Friend The friend to query the presence of.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Querry EOS Presence", Category = "Tamwyn's EOS|Friends")
 		void QuerryEOSPresence(const FDelegateOnPresenceTaskComplete & OnPresenceTaskComplete, const int32 LocalUserNum, const FTamBPOnlineFriend & Friend);
 
-
-
 	/**
 	* Get the friend Presence, need to call "Read EOS Friend List" once before all friend call, Need to call QueryPresence if EpicGames is online subsystem!
-
+	* @param Friend The Friend to get the presence of.
+	* @param PresenceInfo The found presence of this user.
 	*/
 	UFUNCTION(BlueprintPure, DisplayName = "Get cached EOS Friend Presence", Category = "Tamwyn's EOS|Friends")
 		void GetEOSFriendPresence(const FTamBPOnlineFriend & Friend, FTamBPOnlinePresenceData & PresenceInfo);
@@ -1502,19 +1556,36 @@ public:
 	//Player Data Storage
 
 	/**
-	* Before you can read files from Player Data Storage, you need to query the list of files that the user has by calling "Enumerate User Files":	
+	* Before you can read files from Player Data Storage, you need to query the list of files that the user has by calling "Enumerate User Files".
+	* @param OnEnumerateComplete Delegate fired on completion.
+	* @param UserID The local userid making this request.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Enumerate User File", Category = "Tamwyn's EOS|User Title Storage")
 		void EnumerateEOSUserFile(const FDelegateEnumerateEOSUserFile&  OnEnumerateComplete, const FUniqueNetIdRepl & UserID);
 	/**
-	*Call EnumerateUserFile before!
+	* Call EnumerateUserFile before! Return the downloaded list of all UserFile path of the local user.
+	* @param LocalUserId The local user Id.
+	* @param PlayerFileNames The list of all files path.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Get User File List", Category = "Tamwyn's EOS|User Title Storage")
 		void GetEOSUserFileList(const FUniqueNetIdRepl & LocalUserId, TArray<FString>& PlayerFileNames);
 
+	/**
+	* Read the given EOS UserFile as an save game object.
+	* @param OnFileRead Delegate fired on completion.
+	* @param LocalUserId The local user Id.
+	* @param PlayerFileName The save file path.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Read User File as SaveGameObject", Category = "Tamwyn's EOS|User Title Storage")
 		void ReadEOSUserFileAsSavegameObject(const FDelegateEOSFileReadAsSaveGame & OnFileRead,const FUniqueNetIdRepl & LocalUserId,const FString PlayerFileName);
-
+	/**
+	* Write the given EOS UserFile as an save game object and upload it to the User's profile. Data will be serialised and upload as UInt8.
+	* @param OnFileWrote Delegate fired on completion.
+	* @param LocalUserId The local user Id.
+	* @param PlayerFileName The save file path.
+	* @param SaveData The save oject to serialise and upload.
+	* @param CompressBeforeUpload Should we compress the data before uploaded them? Recomanded.
+	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Write SaveGameObject as User File", Category = "Tamwyn's EOS|User Title Storage")
 		void WriteSavegameObjectAsEOSUserFile(const FDelegateEOSUserFileWriten & OnFileWrote, const FUniqueNetIdRepl & LocalUserId, const FString PlayerFileName, USaveGame* SaveData,const bool CompressBeforeUpload);
 	
