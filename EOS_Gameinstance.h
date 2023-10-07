@@ -1,17 +1,24 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #pragma once
 
+#define OnlineLobbyInterface "E:/UE_5.2/Engine/Plugins/Marketplace/EOSOnlineSubsystem/Source/RedpointEOSInterfaces/Private/Interfaces/OnlineLobbyInterface.h"
+
 #include "CoreMinimal.h"
 #include "Kingdoms_Edge.h"
 #include "UObject/Class.h"
 #include "Engine/GameInstance.h"
+#include "GameFramework/PlayerState.h"
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemUtils.h"
 #include "OnlineSubsystemTypes.h"
+#include "Online/OnlineSessionNames.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "Interfaces/OnlineIdentityInterface.h"
-#include "E:/UE_5.1/Engine/Plugins/Marketplace/EOSOnlineSubsystem/Source/RedpointEOSInterfaces/Private/Interfaces/OnlineLobbyInterface.h"
+#include "Interfaces/OnlinePresenceInterface.h"
+#include "Interfaces/OnlineUserInterface.h"
+#include OnlineLobbyInterface
+
 #include "Templates/SharedPointer.h"
 #include "Delegates/Delegate.h"
 #include "Interfaces/OnlinePartyInterface.h"
@@ -604,7 +611,8 @@ public:
 
 UENUM(BlueprintType)
 enum class ETamBPOnlinePresenceState : uint8
-{
+{	
+	
 	Online = static_cast<uint8>(EOnlinePresenceState::Online),
 	Offline = static_cast<uint8>(EOnlinePresenceState::Offline),
 	Away = static_cast<uint8>(EOnlinePresenceState::Away),
