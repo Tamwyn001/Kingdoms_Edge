@@ -101,7 +101,7 @@ void AEOS_GameMode::RegisterPlayers(const FDelegateRegisterPlayer OnPlayerRegist
 
 		// Get the unique player ID.
 		TSharedPtr<const FUniqueNetId> UniqueNetId = UniqueNetIdRepl.GetUniqueNetId();
-		if (UniqueNetId != nullptr)
+		if (UniqueNetId.IsValid())
 		{
 			// Get the online session interface.
 			IOnlineSubsystem* Subsystem = Online::GetSubsystem(PlayerConrtollerElem->GetWorld());

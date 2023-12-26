@@ -1450,11 +1450,6 @@ bool UEOS_Gameinstance::GetPartyLeader(const FUniqueNetIdRepl& LocalUserId, cons
 		UE_LOG(LogTamEOS, Error, TEXT("GetPartyLeader, no valid PartyId!"));
 		return false;
 	}
-	if (!LeaderUniqueNetId.IsValid())
-	{
-		UE_LOG(LogTamEOS, Error, TEXT("GetPartyLeader, no valid LeaderUniqueNetId!"));
-		return false;
-	}
 
 	IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(this->GetWorld());
 	if (OnlineSubsystem)
@@ -1519,8 +1514,8 @@ void UEOS_Gameinstance::CreateEOSSession(const FDelegateEOSSessionCreated & OnSe
 			if (!Session->CreateSession(0, SessionName, *SessionSettings))
 			{
 				UE_LOG(LogTamEOS, Error, TEXT("Create EOS Session, call didn't start!"));
-				return;
 			}
+			return;
 		}
 	}
 	UE_LOG(LogTamEOS, Error, TEXT("Create EOS Session, invalid subsystem!"));
@@ -1694,15 +1689,15 @@ void UEOS_Gameinstance::SearchFriendEOSSession(const FDelegateEOSSessionFound & 
 				UE_LOG(LogTamEOS, Error, TEXT("Search Friends EOS Session, call didn't start!"));
 				const TArray<FTamBPSessionSearchResultInfos> EmptyResult;
 				this->DelegateEOSFriendSessionFound.ExecuteIfBound(false, EmptyResult);
-				return;
+				
 			}
 			if (!Session->FindFriendSession(LocalUserNum, *FriendUniqueNetId.GetUniqueNetId()))
 			{
 				UE_LOG(LogTamEOS, Error, TEXT("Search Friends EOS Session, call didn't start!"));
 				const TArray<FTamBPSessionSearchResultInfos> EmptyResult;
 				this->DelegateEOSFriendSessionFound.ExecuteIfBound(false, EmptyResult);
-				return;
 			}
+			return;
 		}
 	}
 	UE_LOG(LogTamEOS, Error, TEXT("Search Friends EOS Session, Invalid subsystem!"));
@@ -1735,6 +1730,7 @@ void UEOS_Gameinstance::HandleFindFriendSessionCompleted(const int32 LocalUserId
 				}
 			}
 			this->DelegateEOSFriendSessionFound.ExecuteIfBound(bWasSuccessful, BpSearchResults);
+			return;
 		}
 	}
 	UE_LOG(LogTamEOS, Error, TEXT("Search Friends EOS Session callback, invalid subsystem!"));
@@ -1971,8 +1967,9 @@ void UEOS_Gameinstance::StartEOSSession(const FDelegateStartEOSSession & OnSessi
 			{
 				UE_LOG(LogTamEOS, Error, TEXT("Start EOS Session, call didn't start!"));
 				this->DelegateStartEOSSession.ExecuteIfBound(false);
-				return;
+				
 			}
+			return;
 		}
 	}
 	UE_LOG(LogTamEOS, Error, TEXT("Start EOS Session, invalid subsystem!"));
@@ -2206,6 +2203,7 @@ void UEOS_Gameinstance::EnumerateEOSUserFile(const FDelegateEnumerateEOSUserFile
 					this, &UEOS_Gameinstance::HandleEnumerateUserFileComplete));
 			this->DelegateEnumerateEOSUserFile = OnEnumerateComplete;
 			UserCloud->EnumerateUserFiles(*UserID.GetUniqueNetId().Get());
+			return;
 		}
 	}
 	UE_LOG(LogTamEOS, Error, TEXT("EnumerateEOSUserFile, invalid subsystem!"));
@@ -2384,6 +2382,7 @@ void UEOS_Gameinstance::HandleWriteUserFileComplete(bool bWasSuccessful,
 			this->WriteUserDataDelegateHandle.Reset();
 
 			this->DelegateEOSUserFileWriten.ExecuteIfBound(bWasSuccessful);
+			return;
 		}
 	}
 	UE_LOG(LogTamEOS, Error, TEXT("HandleWriteUserFileComplete invalid subsystem!"));

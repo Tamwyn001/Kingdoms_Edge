@@ -1,7 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #pragma once
 
+//uncomment for windows build
 #define OnlineLobbyInterface "E:/UE_5.2/Engine/Plugins/Marketplace/EOSOnlineSubsystem/Source/RedpointEOSInterfaces/Private/Interfaces/OnlineLobbyInterface.h"
+
+//uncomment for mac build
+//#define OnlineLobbyInterface "/Volumes/MHD-temp-GD/UE_5.2/Engine/Plugins/Marketplace/EOSOnlineSubsystem/Source/RedpointEOSInterfaces/Private/Interfaces/OnlineLobbyInterface.h"
+
 
 #include "CoreMinimal.h"
 #include "Kingdoms_Edge.h"
@@ -99,7 +104,24 @@ public:
 
 	FTamBPSessionSettings()
 	{
-
+		NumPublicConnections = 0;
+		NumPrivateConnections = 0;
+		bShouldAdvertise = false;
+		bAllowJoinInProgress = false;
+		bIsLANMatch = false;
+		bIsDedicated = false;
+		bUsesStats = false;
+		bAllowInvites = false;
+		bUsesPresence = false;
+		bAllowJoinViaPresence = false;
+		bAllowJoinViaPresenceFriendsOnly = false;
+		bAntiCheatProtected = false;
+		bUseLobbiesIfAvailable = false;
+		bUseLobbiesVoiceChatIfAvailable = false;
+		SessionIdOverride = TEXT("");
+		BuildUniqueId = 0;
+		Settings = FSessionSettings();
+		MemberSettings = TUniqueNetIdMap<FSessionSettings>();
 	}
 
 };
@@ -435,7 +457,10 @@ public:
 		ETamBPVariantDataType Type;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		FString Key;
-	FTamMetadataQuery(){}
+	FTamMetadataQuery(){
+		Type = ETamBPVariantDataType::Boolean;
+		Key = TEXT("");
+	}
 	FTamMetadataQuery(const ETamBPVariantDataType& InType, const FString InKey)
 	{
 		Type = InType;
@@ -458,7 +483,13 @@ public:
 		float AsFloat;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		FString AsString;
-	FTamBPVariantData(){}
+	FTamBPVariantData(){
+		Type = ETamBPVariantDataType::Boolean;
+		AsBool = true;
+		AsInt = 0;
+		AsFloat = .0;
+		AsString = TEXT("");
+	}
 	FTamBPVariantData(const bool InBool) 
 	{
 		SetTypeBool(InBool);
@@ -1282,7 +1313,7 @@ public:
 	* @param OutInviteList The invitations search results.
 	* @return Did the call succeeded?
 	*/
-	UFUNCTION(BlueprintCallable,BlueprintPure, DisplayName = "Get Player Pending Invites", Category = "Tamwyn's EOS|Party")
+	UFUNCTION(BlueprintCallable, DisplayName = "Get Player Pending Invites", Category = "Tamwyn's EOS|Party")
 		bool GetPlayerPendingInvites(const FUniqueNetIdRepl& PlayerToQueryFor, TArray<FTamBPOnlinePartyJoinInfo>& OutInviteList);
 	/**
 	* Get notified each time the invite array changes. Useful to display lists of invites. This is reset whene disconnecting.
