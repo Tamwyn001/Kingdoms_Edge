@@ -2388,3 +2388,59 @@ void UEOS_Gameinstance::HandleWriteUserFileComplete(bool bWasSuccessful,
 	UE_LOG(LogTamEOS, Error, TEXT("HandleWriteUserFileComplete invalid subsystem!"));
 	return;
 }
+
+void UEOS_Gameinstance::DeleteEOSUserFile(const FDelegateDeleteUserFile& OnDeletionComplete,const FUniqueNetIdRepl& UserId, const FString FileName,const bool CloudDelete, const bool LocalDelete )
+{
+	if (!UserId.IsValid())
+	{
+		UE_LOG(LogTamEOS, Error, TEXT("DeleteEOSUserFile, invalid UserId!"));
+		return;
+	}
+
+	IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(this->GetWorld());
+	if (OnlineSubsystem)
+	{
+		IOnlineUserCloudPtr UserCloud = OnlineSubsystem->GetUserCloudInterface();
+		if (UserCloud)
+		{
+			this->DelegateDeleteUserFile = OnDeletionComplete;
+			//save the delegate handle in our own delegate handle
+			this->DeleteUserDataDelegateHandle = 
+				UserCloud->AddOnDeleteUserFileCompleteDelegate_Handle(FOnDeleteUserFileComplete::FDelegate::CreateUObject(
+				this, &UEOS_Gameinstance::HandleDeleteUserFileComplete));
+
+			if (!UserCloud->DeleteUserFile(*UserId.GetUniqueNetId(), FileName, CloudDelete, LocalDelete))
+			{
+				UE_LOG(LogTamEOS, Error, TEXT("DeleteEOSUserFile didn't start!"));
+			}
+			return;
+		}
+	}
+	UE_LOG(LogTamEOS, Error, TEXT("DeleteEOSUserFile invalid subsystem!"));
+	return;
+}
+
+void UEOS_Gameinstance::HandleDeleteUserFileComplete(
+	bool WasSuccessful,
+	const FUniqueNetId& UserId,
+	const FString& FileName
+)
+{
+	IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(this->GetWorld());
+	if (OnlineSubsystem)
+	{
+		IOnlineUserCloudPtr UserCloud = OnlineSubsystem->GetUserCloudInterface();
+		if (UserCloud)
+		{
+			//Unregister the handler
+			UserCloud->ClearOnDeleteUserFileCompleteDelegate_Handle(this->WriteUserDataDelegateHandle);
+			this->DeleteUserDataDelegateHandle.Reset();
+
+			this->DelegateDeleteUserFile.ExecuteIfBound(WasSuccessful, FUniqueNetIdRepl(UserId), FileName);
+			return;
+		}
+	}
+	UE_LOG(LogTamEOS, Error, TEXT("HandleDeleteEOSUserFileComplete invalid subsystem!"));
+	return;
+}
+

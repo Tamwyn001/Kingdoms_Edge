@@ -992,6 +992,11 @@ DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateQueryUsersInfo,
 	const TArray<FUniqueNetIdRepl>&, QueriedUsers,
 	const FString, ErrorString);
 
+DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateDeleteUserFile,
+	bool, WasSucessfull,
+	const FUniqueNetIdRepl&, UserId,
+	const FString, FileName);
+
 DECLARE_DYNAMIC_DELEGATE_ThreeParams(FDelegateEOSGetFriendPartyJoinInfo, 
 	const bool, WasSucessfull, const FTamBPOnlinePartyJoinInfo&, JoinInfo, const FString, ErrorString);
 
@@ -1123,6 +1128,8 @@ public:
 		FDelegateUpdateAdvancedPartyMetadata DelegateUpdateAdvancedPartyMetadata;
 	UPROPERTY()
 		FDelegateEOSQueryPartyMetadata DelegateEOSQueryPartyMetadata;
+	UPROPERTY()
+		FDelegateDeleteUserFile DelegateDeleteUserFile;
 	//--- Blueprint Exposed Functions ---
 
 //_IDENTITY_
@@ -1628,6 +1635,16 @@ public:
 	UFUNCTION(BlueprintCallable, DisplayName = "Write SaveGameObject as User File", Category = "Tamwyn's EOS|User Title Storage")
 		void WriteSavegameObjectAsEOSUserFile(const FDelegateEOSUserFileWriten & OnFileWrote, const FUniqueNetIdRepl & LocalUserId, const FString PlayerFileName, USaveGame* SaveData,const bool CompressBeforeUpload);
 	
+	/**
+	* Delete the given user file for a user in his user cloud storage.
+	* @param OnFileWrote Delegate fired on completion.
+	* @param LocalUserId The local user Id.
+	* @param PlayerFileName The save file path.
+	* @param SaveData The save oject to serialise and upload.
+	* @param CompressBeforeUpload Should we compress the data before uploaded them? Recomanded.
+	*/
+	UFUNCTION(BlueprintCallable, DisplayName = "Delete EOS User File", Category = "Tamwyn's EOS|User Title Storage")
+		void DeleteEOSUserFile(const FDelegateDeleteUserFile& OnDeletionComplete, const FUniqueNetIdRepl& UserId, const FString FileName, const bool CloudDelete, const bool LocalDelete);
 
 
 
@@ -1751,6 +1768,13 @@ public:
 		const FString &ErrorStr
 	);
 	FDelegateHandle QueryUserInfoDelegateHandle;
+
+	FDelegateHandle DeleteUserDataDelegateHandle;
+	void HandleDeleteUserFileComplete(
+		bool WasSuccessful,
+		const FUniqueNetId& UserIds,
+		const FString& ErrorStr
+	);
 	//sharedRef
 	TSharedRef<FPartyConfiguration> PartyConfig = MakeShared<FPartyConfiguration>();
 	TSharedRef<FOnlineSessionSettings> SessionSettings = MakeShared<FOnlineSessionSettings>();
