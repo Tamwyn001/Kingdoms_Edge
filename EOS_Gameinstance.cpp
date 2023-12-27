@@ -1559,8 +1559,9 @@ void UEOS_Gameinstance::DestroyEOSSession(const FDelegateEOSSessionDestroyed & O
 			if (!Session->DestroySession(SessionName))
 			{
 				UE_LOG(LogTamEOS, Error, TEXT("Destroy EOS Session, call didn't start!"));
-				return;
+
 			}
+			return;
 		}
 	}
 	UE_LOG(LogTamEOS, Error, TEXT("Destroy EOS Session, invalid subsystem!"));
@@ -1967,7 +1968,6 @@ void UEOS_Gameinstance::StartEOSSession(const FDelegateStartEOSSession & OnSessi
 			{
 				UE_LOG(LogTamEOS, Error, TEXT("Start EOS Session, call didn't start!"));
 				this->DelegateStartEOSSession.ExecuteIfBound(false);
-				
 			}
 			return;
 		}
