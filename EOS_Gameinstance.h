@@ -2,10 +2,10 @@
 #pragma once
 
 //uncomment for windows build
-#define OnlineLobbyInterface "E:/UE_5.2/Engine/Plugins/Marketplace/EOSOnlineSubsystem/Source/RedpointEOSInterfaces/Private/Interfaces/OnlineLobbyInterface.h"
+#define OnlineLobbyInterface "E:/UE_5.4/Engine/Plugins/Marketplace/EOSOnlineSubsystem/Source/RedpointEOSInterfaces/Private/Interfaces/OnlineLobbyInterface.h"
 
 //uncomment for mac build
-//#define OnlineLobbyInterface "/Volumes/MHD-temp-GD/UE_5.2/Engine/Plugins/Marketplace/EOSOnlineSubsystem/Source/RedpointEOSInterfaces/Private/Interfaces/OnlineLobbyInterface.h"
+//#define OnlineLobbyInterface "/Volumes/iSSD-SoftwareC/UE_5.2/Engine/Plugins/Marketplace/EOSOnlineSubsystem/Source/RedpointEOSInterfaces/Private/Interfaces/OnlineLobbyInterface.h"
 
 
 #include "CoreMinimal.h"
@@ -1406,7 +1406,7 @@ public:
 	* @param NewCapacity The ne total member of this party.
 	*/
 	/*@todo: optional datas*/
-	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Visibility Metadata", Category = "Tamwyn's EOS|Party")
+	UFUNCTION(BlueprintCallable, DisplayName = "Update Party Advanced Metadata", Category = "Tamwyn's EOS|Party")
 		void UpdatePartyAdvancedMetadata(const FDelegateUpdateAdvancedPartyMetadata& OnMetadataUpdated, const FUniqueNetIdRepl& LocalUserId, const FTamBPOnlinePartyId& PartyId, const bool IsPublic, const bool IsLocked, const int32 NewCapacity);
 	/**
 	* Get the join info of a party as a JSON. Scenario is to upload the join info as a metadata, so that other player can authomaticaly join the session after reading the metadatas.
@@ -1637,11 +1637,11 @@ public:
 	
 	/**
 	* Delete the given user file for a user in his user cloud storage.
-	* @param OnFileWrote Delegate fired on completion.
-	* @param LocalUserId The local user Id.
+	* @param OnDeletionComplete Delegate fired on completion.
+	* @param UserId The local user Id.
 	* @param PlayerFileName The save file path.
-	* @param SaveData The save oject to serialise and upload.
-	* @param CompressBeforeUpload Should we compress the data before uploaded them? Recomanded.
+	* @param CloudDelete Should delete on the EOS cloud.
+	* @param LocalDelete Should delete localy.
 	*/
 	UFUNCTION(BlueprintCallable, DisplayName = "Delete EOS User File", Category = "Tamwyn's EOS|User Title Storage")
 		void DeleteEOSUserFile(const FDelegateDeleteUserFile& OnDeletionComplete, const FUniqueNetIdRepl& UserId, const FString FileName, const bool CloudDelete, const bool LocalDelete);

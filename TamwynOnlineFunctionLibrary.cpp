@@ -6,12 +6,12 @@
 
 bool UTamwynOnlineFunctionLibrary::EqualEqual_UniqueNetIdRepl(const FUniqueNetIdRepl& A, const FUniqueNetIdRepl& B)
 {
-	return A.ToString() == B.ToString();
+	return A->ToString() == B->ToString();
 }
 
 FString UTamwynOnlineFunctionLibrary::Conv_UniqueNetIdReplToString(const FUniqueNetIdRepl& InUniqueNetId)
 {
-	return InUniqueNetId.ToString();
+	return InUniqueNetId->ToString();
 }
 
 FString UTamwynOnlineFunctionLibrary::Conv_FTamBPOnlinePartyIdlToString(const FTamBPOnlinePartyId& PartyId)

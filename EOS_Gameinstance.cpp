@@ -722,6 +722,9 @@ void UEOS_Gameinstance::RequestJoinInfoToParty(const FDelegateEOSGetFriendPartyJ
 				UE_LOG(LogTamEOS, Warning, TEXT("Request Friend Party join info, call search() didn't start"));
 				return;
 			}
+
+		UE_LOG(LogTamEOS, Warning, TEXT("Request Friend Party join info sucessfull!"));
+		return;
 		}
 
 	}
@@ -1124,9 +1127,15 @@ void UEOS_Gameinstance::SendPartyInvite(FDelegateInviteMemberCompleted OnInviteC
 
 void UEOS_Gameinstance::CancelPartyInvite(const FDelegateCancelInviteMemberCompleted OnCancelCompleted, const FUniqueNetIdRepl& Sender, const FTamBPOnlinePartyId& PartyId, const FUniqueNetIdRepl& Recipient)
 {
+	const FString NotSupported = TEXT("CancelPartyInvite, not supported at the moment!");
 	UE_LOG(LogTamEOS, Error, TEXT("CancelPartyInvite, not supported at the moment!"));
+	this->DelegateCancelInviteMemberCompleted = OnCancelCompleted;
+	this->DelegateCancelInviteMemberCompleted.ExecuteIfBound(FUniqueNetIdRepl(Sender),
+		PartyId,
+		Sender,
+		NotSupported);
 	return;
-
+	// ------
 	IOnlineSubsystem* Subsytem = Online::GetSubsystem(this->GetWorld());
 	if (Subsytem)
 	{
@@ -1202,7 +1211,7 @@ bool UEOS_Gameinstance::GetPlayerPendingInvites(const FUniqueNetIdRepl& PlayerTo
 			bool Found = Party->GetPendingInvites(*PlayerToQueryFor.GetUniqueNetId(), InvitesArray);
 			if (Found)
 			{
-				for (const IOnlinePartyJoinInfoConstRef InviteElem : InvitesArray)
+				for (const IOnlinePartyJoinInfoConstRef & InviteElem : InvitesArray)
 				{
 					FTamBPOnlinePartyJoinInfo TempInvite = FTamBPOnlinePartyJoinInfo(InviteElem);
 					OutInviteList.Add(TempInvite);
@@ -1559,7 +1568,6 @@ void UEOS_Gameinstance::DestroyEOSSession(const FDelegateEOSSessionDestroyed & O
 			if (!Session->DestroySession(SessionName))
 			{
 				UE_LOG(LogTamEOS, Error, TEXT("Destroy EOS Session, call didn't start!"));
-
 			}
 			return;
 		}
@@ -1579,6 +1587,7 @@ void UEOS_Gameinstance::HandleDestroySessionCompleted(const FName SessionName, c
 		{
 			Session->ClearOnDestroySessionCompleteDelegate_Handle(this->DestroySessionDelegateHandle);
 			this->DestroySessionDelegateHandle.Reset();
+			return;
 		}
 	}
 	UE_LOG(LogTamEOS, Error, TEXT("Drstroy EOS Session callback, invalid subsystem!"));
@@ -1610,6 +1619,7 @@ void UEOS_Gameinstance::SearchEOSSession(const FDelegateEOSSessionFound & OnSess
 				// Call didn't start, return error.
 				UE_LOG(LogTamEOS, Error, TEXT("Search EOS Session, call didn't start!"));
 			}
+			return;
 		}
 
 	}
@@ -1835,7 +1845,7 @@ void UEOS_Gameinstance::HandleJoinSessionCompleted(const FName SessionName, EOnJ
 			FOnlineSessionSettings* OutSessionSettings = Session->GetSessionSettings(SessionName);
 			if (!OutSessionSettings)
 			{
-				UE_LOG(LogTamEOS, Error, TEXT("Join EOS Session callback filed, session has been destroyed dureing join!"));
+				UE_LOG(LogTamEOS, Error, TEXT("Join EOS Session callback filed, session has been destroyed during join!"));
 				this->DelegateEOSSessionJoined.ExecuteIfBound(SessionName, ETamBPOnJoinSessionCompleteResult::SessionDoesNotExist, -1);
 				return;
 			}
@@ -1925,8 +1935,8 @@ void UEOS_Gameinstance::UpdateEOSSession(const FDelegateUpdateEOSSession & OnSes
 			{
 				UE_LOG(LogTamEOS, Error, TEXT("Update EOS Session, call didn't start!"));
 				this->DelegateUpdateEOSSession.ExecuteIfBound(false);
-				return;
 			}
+			return;
 		}
 	}
 	UE_LOG(LogTamEOS, Error, TEXT("Update EOS Session, invalid subsystem!"));
