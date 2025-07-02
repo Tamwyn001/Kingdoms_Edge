@@ -2,7 +2,7 @@
 
 This Unreal Engine 5 class (UEOS_GameInstance) provides a full Blueprint-accessible interface for Epic Online Services (EOS), designed for multiplayer games like Kingdoms Edge. It acts as a centralized hub for handling EOS login, session creation, matchmaking, party management, friend systems, and user data storage.
 
-*Note* : This should be copied in the source forlder of your project and has therefore no file organisation here.
+*Note* : This should be copied in the source folder of your project and has therefore no file organisation here.
 ## 🎯 Features
 
 - Authentication & Identity
