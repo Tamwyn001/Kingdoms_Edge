@@ -3,45 +3,36 @@
 This Unreal Engine 5 class (UEOS_GameInstance) provides a full Blueprint-accessible interface for Epic Online Services (EOS), designed for multiplayer games like Kingdoms Edge. It acts as a centralized hub for handling EOS login, session creation, matchmaking, party management, friend systems, and user data storage.
 ## 🎯 Features
 
-   - Authentication & Identity
+- Authentication & Identity
 
-     -   Login/logout players
+   - Login/logout players
+   -  Retrieve player nickname, UniqueNetId, and account data
 
-      -  Retrieve player nickname, UniqueNetId, and account data
+- Session Management
 
- -   Session Management
+   - Create, join, destroy EOS sessions
+   - Search for sessions or friends' sessions
+   - Handle session state and settings
 
-  -      Create, join, destroy EOS sessions
+- Party System
 
-   -     Search for sessions or friends' sessions
+   - Create, join, leave, and manage parties
+   - Promote/kick members, send/cancel invitations
+   - Access real-time updates for party events
 
-    -    Handle session state and settings
+- Friends System
 
-    - Party System
+    -   Read friend list
+    -  Check online status & presence info
+    - Respond to friend list changes
 
-     -   Create, join, leave, and manage parties
+- Presence
+   - Query and cache player presence data
+   - Check if friends are online, in-game, or joinable
 
-      -  Promote/kick members, send/cancel invitations
+ - User File Storage
 
-       - Access real-time updates for party events
-
-    -Friends System
-
-     -   Read friend list
-
-      -  Check online status & presence info
-
-       - Respond to friend list changes
-
-    - Presence
-
-       - Query and cache player presence data
-
-       - Check if friends are online, in-game, or joinable
-
-    - User File Storage
-
-      -  Enumerate, read, write, and delete user files on EOS cloud
+   -  Enumerate, read, write, and delete user files on EOS cloud
 
 ## 🧩 Blueprint Integration
 
